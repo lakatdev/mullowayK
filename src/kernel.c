@@ -77,8 +77,6 @@ void kernel_main(const void* multiboot_struct)
     invalidate();
 
     init_desktop();
-
-    while(1);
 }
 
 
