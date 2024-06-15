@@ -13,6 +13,11 @@ objects = obj/loader.o \
 		obj/mouse.o \
 		obj/desktop.o \
 		obj/math.o \
+		obj/apps/desktop.o \
+		obj/apps/runner.o \
+		obj/apps/editor.o \
+		obj/apps/files.o \
+		obj/apps/info.o \
         obj/kernel.o
 
 obj/%.o: src/%.c
