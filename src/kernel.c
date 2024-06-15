@@ -168,7 +168,7 @@ void kernel_main(const void* multiboot_struct)
     init_mouse();
     draw_screen(0, 0, 0);
     draw_image(WIDTH / 2 - 75, HEIGHT / 2 - 30, 150, 60, mlogo_60, 255, 255, 255);
-    invalidate();
-
+    invalidate_buffer();
+    sleep(1000);
     init_desktop();
 }
