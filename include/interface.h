@@ -4,7 +4,7 @@
 void printf(const char* str);
 void printfHex(unsigned int n);
 void update_taskbar();
-char* get_boot_messages();
+extern char boot_messages[];
+extern unsigned char mlogo_60[];
 
 #endif
-

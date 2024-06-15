@@ -39,7 +39,7 @@ build: linker.ld $(objects)
 	grub-mkrescue --output=mullowayk.iso iso
 	rm -rf iso
 run:
-	qemu-system-x86_64 -smp 4 mullowayk.iso
+	qemu-system-x86_64 mullowayk.iso
 
 clean:
 	rm -rf obj build mullowayk.iso

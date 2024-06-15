@@ -1,9 +1,9 @@
 #include <graphics.h>
 #include <mouse.h>
-#include <icons.h>
 #include <rtc.h>
 #include <interrupts.h>
 #include <memory.h>
+#include <interface.h>
 
 typedef struct  {
     void (*mouse_click)(int x, int y);

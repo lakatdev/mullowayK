@@ -97,7 +97,7 @@ void app_runner_mouse(int x, int y)
 void app_runner_init()
 {
     app_runner_clear_video_memory();
-    app_runner_printf(get_boot_messages());
+    app_runner_printf(boot_messages);
 }
 
 unsigned char app_runner_icon_60[] = {
