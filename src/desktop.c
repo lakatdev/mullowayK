@@ -5,17 +5,17 @@
 #include <memory.h>
 #include <interface.h>
 
-typedef struct  {
+typedef struct {
     void (*mouse_click)(int x, int y);
     void (*key_press)(char key);
     void (*draw)();
     void (*init)();
     unsigned char* icon;
     char name[32];
-} Application_t;
+} Application;
 
 unsigned char update_required = 1;
-Application_t* applications = (void*)0;
+Application* applications = (void*)0;
 int application_count = 0;
 int selected_application = 0;
 
@@ -70,10 +70,10 @@ void key_press(char key)
     }
 }
 
-void add_application(Application_t app)
+void add_application(Application app)
 {
-    Application_t* new_apps = (Application_t*)malloc((application_count + 1) * sizeof(Application_t));
-    memcpy(new_apps, applications, application_count * sizeof(Application_t));
+    Application* new_apps = (Application*)malloc((application_count + 1) * sizeof(Application));
+    memcpy(new_apps, applications, application_count * sizeof(Application));
     new_apps[application_count] = app;
     free(applications);
     applications = new_apps;
@@ -133,7 +133,7 @@ void draw_desktop()
 
 void init_desktop()
 {
-    add_application((Application_t) {
+    add_application((Application) {
         .init = app_desktop_init,
         .mouse_click = app_desktop_mouse,
         .key_press = app_desktop_key,
@@ -142,7 +142,7 @@ void init_desktop()
         .name = "Desktop"
     });
 
-    add_application((Application_t) {
+    add_application((Application) {
         .init = app_info_init,
         .mouse_click = app_info_mouse,
         .key_press = app_info_key,
@@ -151,7 +151,7 @@ void init_desktop()
         .name = "Info"
     });
 
-    add_application((Application_t) {
+    add_application((Application) {
         .init = app_files_init,
         .mouse_click = app_files_mouse,
         .key_press = app_files_key,
@@ -160,7 +160,7 @@ void init_desktop()
         .name = "Files"
     });
 
-    add_application((Application_t) {
+    add_application((Application) {
         .init = app_editor_init,
         .mouse_click = app_editor_mouse,
         .key_press = app_editor_key,
@@ -169,7 +169,7 @@ void init_desktop()
         .name = "Editor"
     });
 
-    add_application((Application_t) {
+    add_application((Application) {
         .init = app_runner_init,
         .mouse_click = app_runner_mouse,
         .key_press = app_runner_key,

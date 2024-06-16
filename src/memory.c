@@ -124,3 +124,25 @@ unsigned int get_memory_usage()
 {
     return (unsigned int)((float)total_allocated / total_available * 10000.0f);
 }
+
+void* realloc(void* ptr, unsigned int size)
+{
+    if (ptr == (void*)0) {
+        return malloc(size);
+    }
+
+    Block* current = (Block*)((unsigned int)ptr - sizeof(Block));
+
+    if (current->size >= size && current->size <= size + sizeof(Block) + 1) {
+        return ptr;
+    }
+
+    void* new_ptr = malloc(size);
+    if (new_ptr == (void*)0) {
+        return (void*)0;
+    }
+    memcpy(new_ptr, ptr, current->size);
+    free(ptr);
+
+    return new_ptr;
+}

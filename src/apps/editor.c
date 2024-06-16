@@ -1,31 +1,128 @@
 #include <graphics.h>
+#include <memory.h>
 
-char app_editor_text[1024] = {0};
-int app_editor_text_len = 0;
+// TODO: neha elveszik hogy mi a fasz van vszeg a app_editor_first kinullazodik vagy idk
+
+typedef struct EditorLine EditorLine;
+struct EditorLine {
+    EditorLine* next;
+    EditorLine* prev;
+    char* text;
+    unsigned int length;
+};
+
+EditorLine* app_editor_first = (void*)0;
+unsigned int app_editor_lines_count = 0;
+int app_editor_selected_line = -1;
+
+void app_editor_new_line(EditorLine* prev)
+{
+    EditorLine* new_line = (EditorLine*)malloc(sizeof(EditorLine));
+    if (new_line == (void*)0) {
+        return;
+    }
+    new_line->text = malloc(1);
+    new_line->text[0] = 0;
+    new_line->length = 0;
+    new_line->next = (void*)0;
+    if (prev != (void*)0) {
+        if (prev->next != (void*)0) {
+            new_line->next = prev->next;
+            prev->next->prev = new_line;
+        }
+        new_line->prev = prev;
+        prev->next = new_line;
+    }
+    else {
+        new_line->prev = (void*)0;
+        app_editor_first = new_line;
+    }
+    app_editor_selected_line++;
+    app_editor_lines_count++;
+}
+
+void app_editor_remove_line(EditorLine* line)
+{
+    if (line == app_editor_first) {
+        return;
+    }
+
+    if (line->prev != (void*)0) {
+        line->prev->next = line->next;
+    }
+
+    if (line->next != (void*)0) {
+        line->next->prev = line->prev;
+    }
+
+    free(line->text);
+    free(line);
+    app_editor_selected_line--;
+    app_editor_lines_count--;
+}
+
+void app_editor_remove_char()
+{
+    EditorLine* line = app_editor_first;
+    for (unsigned int i = 0; i < app_editor_selected_line; i++) {
+        if (line->next == (void*)0) {
+            return;
+        }
+        line = line->next;
+    }
+    if (line->length == 0) {
+        app_editor_remove_line(line);
+        return;
+    }
+    line->text = realloc(line->text, line->length);
+    line->text[line->length - 1] = 0;
+    line->length--;
+}
+
+void app_editor_insert_char(char c)
+{
+    EditorLine* line = app_editor_first;
+    for (unsigned int i = 0; i < app_editor_selected_line; i++) {
+        line = line->next;
+    }
+    line->text = realloc(line->text, line->length + 2);
+    line->text[line->length] = c;
+    line->text[line->length + 1] = 0;
+    line->length++;
+}
+
+void app_editor_printc(char c)
+{
+    if (c == '\b') {
+        app_editor_remove_char();
+    }
+    else if (c == '\n') {
+        EditorLine* line = app_editor_first;
+        for (unsigned int i = 0; i < app_editor_selected_line; i++) {
+            line = line->next;
+        }
+        app_editor_new_line(line);
+    }
+    else {
+        app_editor_insert_char(c);
+    }
+}
 
 void app_editor_draw()
 {
     draw_rect(30, 30, WIDTH - 60, HEIGHT - 150, 255, 255, 255);
-    draw_text(40, 70, "Editor", 32, 0, 0, 0);
-    draw_text(40, 120, app_editor_text, 20, 0, 0, 0);
+    draw_rect(30, 30 + app_editor_selected_line * 20, WIDTH - 60, 20, 200, 200, 200);
+
+    EditorLine* line = app_editor_first;
+    for (unsigned int i = 0; i < app_editor_lines_count; i++) {
+        draw_text(40, 45 + i * 20, line->text, 20, 0, 0, 0);
+        line = line->next;
+    }
 }
 
 void app_editor_key(char key)
 {
-    if (key == '\b') {
-        if (app_editor_text_len > 0) {
-            app_editor_text_len--;
-            app_editor_text[app_editor_text_len] = 0;
-        }
-        return;
-    }
-
-    if (app_editor_text_len >= 1023) {
-        return;
-    }
-
-    app_editor_text[app_editor_text_len] = key;
-    app_editor_text_len++;
+    app_editor_printc(key);
 }
 
 void app_editor_mouse(int x, int y)
@@ -35,7 +132,7 @@ void app_editor_mouse(int x, int y)
 
 void app_editor_init()
 {
-
+    app_editor_new_line((void*)0);
 }
 
 unsigned char app_editor_icon_60[] = {

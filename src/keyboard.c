@@ -66,5 +66,10 @@ void handle_keyboard(unsigned char scancode)
         case 0x39: put_key(' '); break;
         case 0x2A: case 0x36: shift = 1; break;
         case 0xAA: case 0xB6: shift = 0; break;
+
+        case 0x48: put_key(' '); break; //TODO: valahogy kezelni a nyilakat es elkuldeni az appoknak stb
+        case 0x4B: put_key(' '); break;
+        case 0x4D: put_key(' '); break;
+        case 0x50: put_key(' '); break;
     }
 }
