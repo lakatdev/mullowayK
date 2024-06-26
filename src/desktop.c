@@ -27,19 +27,20 @@ unsigned char mlogo_26[] = {
 };
 
 typedef struct {
+    char name[32];
+    MenuItem* items;
+    int item_count;
+} Menu;
+
+typedef struct {
     void (*mouse_click)(int x, int y);
     void (*key_press)(char key);
     void (*draw)();
     void (*init)();
     unsigned char* icon;
     char name[32];
+    Menu menu;
 } Application;
-
-typedef struct {
-    char name[32];
-    MenuItem* items;
-    int item_count;
-} Menu;
 
 unsigned char update_required = 1;
 Application* applications = (void*)0;
@@ -49,6 +50,8 @@ Menu* menus = (void*)0;
 int menu_count = 0;
 int selected_menu = -1;
 int last_clicked_menu_item = 0;
+int initialized_app = 0;
+unsigned char desktop_running = 1;
 
 void update_info_bar()
 {
@@ -103,12 +106,19 @@ void key_press(char key)
 
 void add_application(Application app)
 {
+    memcpy(app.menu.name, app.name, 32);
+    app.menu.item_count = 0;
+
     Application* new_apps = (Application*)malloc((application_count + 1) * sizeof(Application));
     memcpy(new_apps, applications, application_count * sizeof(Application));
     new_apps[application_count] = app;
-    free(applications);
+    if (application_count > 0) {
+        free(applications);
+    }
     applications = new_apps;
     application_count++;
+
+    initialized_app = application_count - 1;
     app.init();
 }
 
@@ -117,7 +127,9 @@ void add_menu(Menu menu)
     Menu* new_menus = (Menu*)malloc((menu_count + 1) * sizeof(Menu));
     memcpy(new_menus, menus, menu_count * sizeof(Menu));
     new_menus[menu_count] = menu;
-    free(menus);
+    if (menu_count > 0) {
+        free(menus);
+    }
     menus = new_menus;
     menu_count++;
 }
@@ -127,20 +139,20 @@ void add_menu_item(Menu* menu, MenuItem menu_item)
     MenuItem* new_items = (MenuItem*)malloc((menu->item_count + 1) * sizeof(MenuItem));
     memcpy(new_items, menu->items, menu->item_count * sizeof(MenuItem));
     new_items[menu->item_count] = menu_item;
-    free(menu->items);
+    if (menu->item_count > 0) {
+        free(menu->items);
+    }
     menu->items = new_items;
     menu->item_count++;
 }
 
-void add_app_menu_item(MenuItem menu_item) {
-    if (menu_count > 0) {
-        add_menu_item(&menus[2], menu_item);
-    }
+void add_app_menu_item(MenuItem menu_item)
+{
+    add_menu_item(&applications[initialized_app].menu, menu_item);
 }
 
 void mouse_click(int x, int y)
 {
-
     if (selected_menu != -1) {
         if (y >= 30 && y < 30 + menus[selected_menu].item_count * 30 &&
             x >= (selected_menu + 1) * 100 && x < (selected_menu + 1) * 100 + 200) {
@@ -176,9 +188,6 @@ void draw_panel()
     system_draw_rect(0, 0, WIDTH, 30, THEME_BACKGROUND_COLOR);
     system_draw_image(20, 2, 60, 26, mlogo_26, THEME_TEXT_COLOR);
 
-    if (menu_count >= 3 && application_count > 0) {
-        memcpy(menus[2].name, applications[selected_application].name, 32);
-    }
     for (int i = 0; i < menu_count; i++) {
         if (i == selected_menu) {
             system_draw_rect((i + 1) * 100, 0, 100, 30, THEME_HIGHLIGHT_COLOR);
@@ -208,7 +217,13 @@ void draw_desktop()
 void select_application()
 {
     selected_application = last_clicked_menu_item;
+    memcpy(&menus[2], &applications[selected_application].menu, sizeof(Menu));
     invalidate();
+}
+
+void terminate_desktop()
+{
+    desktop_running = 0;
 }
 
 #include <apps/desktop.h>
@@ -264,15 +279,13 @@ void init_desktop()
         .name = "Runner"
     });
 
-    add_menu((Menu) {
-        .name = "System"
-    });
+    add_menu((Menu) { .name = "System" });
     add_menu_item(&menus[0], (MenuItem) {
         .name = "Shutdown",
-        .action = (void*)0
+        .action = terminate_desktop
     });
 
-    add_menu((Menu) {.name = "Apps"});
+    add_menu((Menu) { .name = "Apps" });
     for (int i = 0; i < application_count; i++) {
         add_menu_item(&menus[1], (MenuItem) {
             .name = "",
@@ -281,11 +294,10 @@ void init_desktop()
         memcpy(menus[1].items[i].name, applications[i].name, 32);
     }
 
-    add_menu((Menu) {
-        .name = "---"   
-    });
+    add_menu((Menu) { .name = "---" });
+    memcpy(&menus[2], &applications[selected_application].menu, sizeof(Menu));
 
-    while (1) {
+    while (desktop_running) {
         if (update_required) {
             draw_desktop();
             update_required = 0;

@@ -133,6 +133,10 @@ void app_editor_mouse(int x, int y)
 void app_editor_init()
 {
     app_editor_new_line((void*)0);
+    add_app_menu_item((MenuItem) {
+        .name = "Run",
+        .action = (void*)0
+    });
 }
 
 unsigned char app_editor_icon_60[] = {

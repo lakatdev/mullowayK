@@ -4,7 +4,7 @@
 #define WIDTH 1280
 #define HEIGHT 720
 #define USER_WINDOW_X 200
-#define USER_WINDOW_Y 40
+#define USER_WINDOW_Y 60
 
 #define SYSTEM_FONT ubuntu_mono_v2_mfp
 

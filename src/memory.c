@@ -28,6 +28,10 @@ void init_memory(unsigned int first_addr, unsigned int size)
 
 void* malloc(unsigned int size)
 {
+    if (size == 0) {
+        return (void*)0;
+    }
+
     Block* best = (void*)0;
     Block* curr = first;
 
