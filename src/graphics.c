@@ -1,10 +1,8 @@
 #include <interface.h>
 #include <graphics.h>
 #include <memory.h>
-#include <ubuntu-mono-v2.mfp.h>
+#include <fonts.mfp.h>
 #include <math.h>
-
-#define BITGET(var, pos) (((var) & (1 << pos)))
 
 unsigned char* video;
 unsigned char buffer[WIDTH * HEIGHT * 4];
@@ -26,7 +24,7 @@ void init_graphics(unsigned char* buffer)
     video = buffer;
 }
 
-void draw_screen(unsigned char r, unsigned char g, unsigned char b)
+void system_draw_screen(unsigned char r, unsigned char g, unsigned char b)
 {
     for (int i = 0; i < WIDTH * HEIGHT * 4; i += 4) {
         buffer[i] = b;
@@ -36,7 +34,7 @@ void draw_screen(unsigned char r, unsigned char g, unsigned char b)
     }
 }
 
-void draw_pixel(int x, int y, unsigned char r, unsigned char g, unsigned char b)
+void system_draw_pixel(int x, int y, unsigned char r, unsigned char g, unsigned char b)
 {
     if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
         return;
@@ -49,16 +47,16 @@ void draw_pixel(int x, int y, unsigned char r, unsigned char g, unsigned char b)
     buffer[i + 3] = 0;
 }
 
-void draw_rect(int x, int y, int width, int height, unsigned char r, unsigned char g, unsigned char b)
+void system_draw_rect(int x, int y, int width, int height, unsigned char r, unsigned char g, unsigned char b)
 {
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
-            draw_pixel(x + i, y + j, r, g, b);
+            system_draw_pixel(x + i, y + j, r, g, b);
         }
     }
 }
 
-void draw_thin_line(int x1, int y1, int x2, int y2, unsigned char r, unsigned char g, unsigned char b)
+void system_draw_thin_line(int x1, int y1, int x2, int y2, unsigned char r, unsigned char g, unsigned char b)
 {
     int dx = abs(x2 - x1);
     int dy = abs(y2 - y1);
@@ -67,7 +65,7 @@ void draw_thin_line(int x1, int y1, int x2, int y2, unsigned char r, unsigned ch
     int err = dx - dy;
 
     while (1) {
-        draw_pixel(x1, y1, r, g, b);
+        system_draw_pixel(x1, y1, r, g, b);
 
         if (x1 == x2 && y1 == y2) {
             break;
@@ -85,7 +83,7 @@ void draw_thin_line(int x1, int y1, int x2, int y2, unsigned char r, unsigned ch
     }
 }
 
-void draw_line(int x1, int y1, int x2, int y2, int width, unsigned char r, unsigned char g, unsigned char b)
+void system_draw_line(int x1, int y1, int x2, int y2, int width, unsigned char r, unsigned char g, unsigned char b)
 {
     int dxabs = abs(x2 - x1);
     int dyabs = abs(y2 - y1);
@@ -95,29 +93,29 @@ void draw_line(int x1, int y1, int x2, int y2, int width, unsigned char r, unsig
 
     if (dxabs >= dyabs) {
         for (int i = start; i < end; i++) {
-            draw_thin_line(x1, y1 + i, x2, y2 + i, r, g, b);
+            system_draw_thin_line(x1, y1 + i, x2, y2 + i, r, g, b);
         }
     }
     else {
         for (int i = start; i < end; i++) {
-            draw_thin_line(x1 + i, y1, x2 + i, y2, r, g, b);
+            system_draw_thin_line(x1 + i, y1, x2 + i, y2, r, g, b);
         }
     }
 }
 
-void draw_circle(int x, int y, int radius, int width, unsigned char r, unsigned char g, unsigned char b)
+void system_draw_circle(int x, int y, int radius, int width, unsigned char r, unsigned char g, unsigned char b)
 {
 
 }
 
-void draw_character(int x, int y, unsigned char* data, unsigned char r, unsigned char g, unsigned char b)
+void system_draw_character(int x, int y, unsigned char* data, unsigned char r, unsigned char g, unsigned char b)
 {
     int h = y;
     int w = x;
     for (int i = 0; i < (data[0] << 3); i++) {
         int j = 7 - (i % 8);
         if (BITGET(data[(i >> 3) + 3], j)) {
-            draw_pixel(w, h, r, g, b);
+            system_draw_pixel(w, h, r, g, b);
         }
         w++;
         if (w >= data[1] + x) {
@@ -127,37 +125,37 @@ void draw_character(int x, int y, unsigned char* data, unsigned char r, unsigned
     }
 }
 
-void render_character(unsigned char code, int x, int y, int size, unsigned char r, unsigned char g, unsigned char b)
+void system_render_character(unsigned char code, int x, int y, int size, unsigned char r, unsigned char g, unsigned char b)
 {
     int pos = 0;
 
     // Check if the size is available
-    for (int  i = 0; i < ubuntu_mono_v2_mfp[0]; i++) {
-        if (ubuntu_mono_v2_mfp[i + 2] == size) {
+    for (int  i = 0; i < SYSTEM_FONT[0]; i++) {
+        if (SYSTEM_FONT[i + 2] == size) {
             pos = i;
             break;
         }
-        if (i == ubuntu_mono_v2_mfp[0] - 1) {
+        if (i == SYSTEM_FONT[0] - 1) {
             return;
         }
     }
 
     // Set up the cursor
-    int cursor = ubuntu_mono_v2_mfp[0] + 2;
+    int cursor = SYSTEM_FONT[0] + 2;
 
     // Get position of selected size
-    for (int i = 0; i < pos * ubuntu_mono_v2_mfp[1]; i++) {
-        cursor += ubuntu_mono_v2_mfp[cursor] + 3;
+    for (int i = 0; i < pos * SYSTEM_FONT[1]; i++) {
+        cursor += SYSTEM_FONT[cursor] + 3;
     }
 
     // Get character
     for (int i = 0; i < code; i++) {
-        cursor += ubuntu_mono_v2_mfp[cursor] + 3;
+        cursor += SYSTEM_FONT[cursor] + 3;
     }
 
-    int abs_size = ubuntu_mono_v2_mfp[cursor] + 3;
+    int abs_size = SYSTEM_FONT[cursor] + 3;
     unsigned char data[abs_size];
-    memcpy((unsigned char*)&data, &ubuntu_mono_v2_mfp[cursor], abs_size);
+    memcpy((unsigned char*)&data, &SYSTEM_FONT[cursor], abs_size);
 
     x += ((size / 2) - data[1]) / 2;
     switch (data[2]) {
@@ -175,10 +173,10 @@ void render_character(unsigned char code, int x, int y, int size, unsigned char 
         }
     }
 
-    draw_character(x, y, (unsigned char*)&data, r, g, b);
+    system_draw_character(x, y, (unsigned char*)&data, r, g, b);
 }
 
-void draw_text(int x, int y, const char* text, int size, unsigned char r, unsigned char g, unsigned char b)
+void system_draw_text(int x, int y, const char* text, int size, unsigned char r, unsigned char g, unsigned char b)
 {
     int dx = x;
     for (int i = 0; text[i] != '\0'; i++) {
@@ -197,7 +195,7 @@ void draw_text(int x, int y, const char* text, int size, unsigned char r, unsign
                 break;
             }
             default: {
-                render_character(convert_ascii[text[i]], x, y, size, r, g, b);
+                system_render_character(convert_ascii[text[i]], x, y, size, r, g, b);
                 x += size / 2;
                 break;
             }
@@ -205,14 +203,14 @@ void draw_text(int x, int y, const char* text, int size, unsigned char r, unsign
     }
 }
 
-void draw_image(int x, int y, int width, int height, unsigned char* image, unsigned char r, unsigned char g, unsigned char b)
+void system_draw_image(int x, int y, int width, int height, unsigned char* image, unsigned char r, unsigned char g, unsigned char b)
 {
     int h = y;
     int w = x;
     for (int i = 0; i < width * height; i++) {
         int j = 7 - (i % 8);
         if (BITGET(image[i >> 3], j)) {
-            draw_pixel(w, h, r, g, b);
+            system_draw_pixel(w, h, r, g, b);
         }
         w++;
         if (w >= width + x) {

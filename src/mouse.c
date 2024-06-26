@@ -82,8 +82,8 @@ void handle_mouse()
 
 void draw_cursor()
 {
-    draw_image(abs_x, abs_y, 18, 28, cursor_outline, 0, 0, 0);
-    draw_image(abs_x, abs_y, 18, 28, cursor_back, 255, 255, 255);
+    system_draw_image(abs_x, abs_y, 18, 28, cursor_outline, 0, 0, 0);
+    system_draw_image(abs_x, abs_y, 18, 28, cursor_back, 255, 255, 255);
 }
 
 void mouse_wait(unsigned char type)

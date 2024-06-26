@@ -8,11 +8,13 @@ objects = obj/loader.o \
 		obj/load_idt.o \
 		obj/sse.o \
 		obj/graphics.o \
+		obj/fonts.mfp.o \
 		obj/interrupts.o \
 		obj/keyboard.o \
 		obj/mouse.o \
 		obj/desktop.o \
 		obj/math.o \
+		obj/userlib.o \
 		obj/apps/desktop.o \
 		obj/apps/runner.o \
 		obj/apps/editor.o \

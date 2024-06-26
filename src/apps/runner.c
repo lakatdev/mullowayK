@@ -1,4 +1,4 @@
-#include <graphics.h>
+#include <userlib.h>
 #include <interface.h>
 #include <memory.h>
 
@@ -73,13 +73,13 @@ void app_runner_printf(const char* str)
 
 void app_runner_draw()
 {
-    draw_rect(30, 30, 10 * APP_RUNNER_WIDTH, 20 * APP_RUNNER_HEIGHT, 0, 0, 0);
+    draw_rect(0, 0, 10 * APP_RUNNER_WIDTH, 20 * APP_RUNNER_HEIGHT, 0, 0, 0);
     for (int i = 0; i < APP_RUNNER_HEIGHT; i++) {
         char line[APP_RUNNER_WIDTH + 1] = {0};
         memcpy(line, &app_runner_video[i * APP_RUNNER_WIDTH], APP_RUNNER_WIDTH);
-        draw_text(30, 50 + i * 20, line, 20, 255, 255, 255);
+        draw_text(0, 15 + i * 20, line, 20, 255, 255, 255);
     }
-    draw_line(30 + app_runner_x * 10, 30 + (app_runner_y + 1) * 20, 30 + (app_runner_x + 1) * 10, 30 + (app_runner_y + 1) * 20, 3, 200, 200, 200);
+    draw_line(app_runner_x * 10, (app_runner_y + 1) * 20 - 5, (app_runner_x + 1) * 10, (app_runner_y + 1) * 20 - 5, 3, 200, 200, 200);
 }
 
 void app_runner_key(char key)

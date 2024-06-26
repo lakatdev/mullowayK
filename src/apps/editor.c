@@ -1,4 +1,4 @@
-#include <graphics.h>
+#include <userlib.h>
 #include <memory.h>
 
 // TODO: neha elveszik hogy mi a fasz van vszeg a app_editor_first kinullazodik vagy idk
@@ -110,12 +110,12 @@ void app_editor_printc(char c)
 
 void app_editor_draw()
 {
-    draw_rect(30, 30, WIDTH - 60, HEIGHT - 150, 255, 255, 255);
-    draw_rect(30, 30 + app_editor_selected_line * 20, WIDTH - 60, 20, 200, 200, 200);
+    draw_screen(255, 255, 255);
+    draw_rect(0, 0 + app_editor_selected_line * 20, USER_WINDOW_WIDTH, 20, 200, 200, 200);
 
     EditorLine* line = app_editor_first;
     for (unsigned int i = 0; i < app_editor_lines_count; i++) {
-        draw_text(40, 45 + i * 20, line->text, 20, 0, 0, 0);
+        draw_text(10, 15 + i * 20, line->text, 20, 0, 0, 0);
         line = line->next;
     }
 }

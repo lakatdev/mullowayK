@@ -1,9 +1,8 @@
-#include <graphics.h>
+#include <userlib.h>
 
 void app_info_draw()
 {
-    draw_rect(30, 30, WIDTH - 60, HEIGHT - 150, 255, 255, 255);
-    draw_text(40, 70, "Info", 32, 0, 0, 0);
+    draw_screen(0, 0, 0);
 }
 
 void app_info_key(char key)

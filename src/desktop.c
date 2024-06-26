@@ -4,6 +4,27 @@
 #include <interrupts.h>
 #include <memory.h>
 #include <interface.h>
+#include <userlib.h>
+
+unsigned char mlogo_26[] = {
+    0x00, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x80, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x01, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x7f, 0xfc, 0x00, 0x00, 0x00, 0x04, 0x00, 0x07, 0xff, 0xf0, 0x00, 0x00,
+    0x01, 0x80, 0x00, 0x3f, 0xff, 0xc0, 0x00, 0x00, 0x78, 0x00, 0x03, 0xff,
+    0xff, 0x00, 0x00, 0x1f, 0x00, 0x0c, 0x3f, 0xff, 0xfc, 0x00, 0x07, 0xe0,
+    0x03, 0xe7, 0xff, 0xff, 0xf0, 0x00, 0xfc, 0x00, 0x7f, 0xff, 0xff, 0xff,
+    0xe0, 0x3f, 0xc0, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x8f, 0xf8, 0x03, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0x7f, 0xff, 0xff, 0xff, 0xff, 0x8f,
+    0xfc, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xf0, 0x3f, 0xe0, 0x7f, 0xff, 0xff,
+    0xff, 0xfc, 0x00, 0xfe, 0x01, 0xdf, 0xbf, 0xdb, 0xff, 0x00, 0x03, 0xf0,
+    0x04, 0xf3, 0xfd, 0xbf, 0xc0, 0x00, 0x0f, 0x80, 0x0f, 0x3f, 0xdb, 0xf0,
+    0x00, 0x00, 0x1c, 0x01, 0xeb, 0x6d, 0xb5, 0x6c, 0x29, 0x20, 0x60, 0x0b,
+    0xb6, 0xda, 0x12, 0x40, 0x92, 0x01, 0x00, 0x9b, 0x6d, 0xb1, 0x24, 0x08,
+    0x80, 0x00, 0x04, 0x36, 0xd9, 0x13, 0x64, 0x8c, 0x00, 0x02, 0x45, 0x6c,
+    0x49, 0x12, 0x48, 0xc0, 0x00, 0x00, 0x07, 0x80, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x30, 0x00
+};
 
 typedef struct {
     void (*mouse_click)(int x, int y);
@@ -14,14 +35,24 @@ typedef struct {
     char name[32];
 } Application;
 
+typedef struct {
+    char name[32];
+    MenuItem* items;
+    int item_count;
+} Menu;
+
 unsigned char update_required = 1;
 Application* applications = (void*)0;
 int application_count = 0;
 int selected_application = 0;
+Menu* menus = (void*)0;
+int menu_count = 0;
+int selected_menu = -1;
+int last_clicked_menu_item = 0;
 
 void update_info_bar()
 {
-    char* template = "MEM ~000.00%\nyy-mm-dd hh:mm:ss";
+    char* template = "MEM ~000.00% yy-mm-dd hh:mm:ss";
     char* hex = "0123456789ABCDEF";
 
     char seconds = get_second();
@@ -55,7 +86,7 @@ void update_info_bar()
     template[28] = hex[(seconds >> 4) & 0xF];
     template[29] = hex[seconds & 0xF];
 
-    draw_text(WIDTH - 220, HEIGHT - 68, template, 24, 0, 0, 0);
+    system_draw_text(WIDTH - 370, 22, template, 24, THEME_TEXT_COLOR);
 }
 
 void invalidate()
@@ -81,48 +112,103 @@ void add_application(Application app)
     app.init();
 }
 
+void add_menu(Menu menu)
+{
+    Menu* new_menus = (Menu*)malloc((menu_count + 1) * sizeof(Menu));
+    memcpy(new_menus, menus, menu_count * sizeof(Menu));
+    new_menus[menu_count] = menu;
+    free(menus);
+    menus = new_menus;
+    menu_count++;
+}
+
+void add_menu_item(Menu* menu, MenuItem menu_item)
+{
+    MenuItem* new_items = (MenuItem*)malloc((menu->item_count + 1) * sizeof(MenuItem));
+    memcpy(new_items, menu->items, menu->item_count * sizeof(MenuItem));
+    new_items[menu->item_count] = menu_item;
+    free(menu->items);
+    menu->items = new_items;
+    menu->item_count++;
+}
+
+void add_app_menu_item(MenuItem menu_item) {
+    if (menu_count > 0) {
+        add_menu_item(&menus[2], menu_item);
+    }
+}
+
 void mouse_click(int x, int y)
 {
-    if (y > HEIGHT - 90 && y < HEIGHT - 30) {
-        int app = (x - 250) / 70;
-        if (app >= 0 && app < application_count) {
-            selected_application = app;
+
+    if (selected_menu != -1) {
+        if (y >= 30 && y < 30 + menus[selected_menu].item_count * 30 &&
+            x >= (selected_menu + 1) * 100 && x < (selected_menu + 1) * 100 + 200) {
+            int item = (y - 30) / 30;
+            if (menus[selected_menu].items[item].action != (void*)0) {
+                last_clicked_menu_item = item;
+                menus[selected_menu].items[item].action();
+                invalidate();
+                selected_menu = -1;
+                return;
+            }
+        }
+    } 
+
+    selected_menu = -1;
+    if (y <= 30 && x >= 100 && x < 100 + menu_count * 100) {
+        int menu = (x - 100) / 100;
+        if (menu >= 0 && menu < menu_count) {
+            selected_menu = menu;
             invalidate();
         }
     }
-    else {
+    else if (y >= USER_WINDOW_Y && y < USER_WINDOW_Y + USER_WINDOW_HEIGHT &&
+        x >= USER_WINDOW_X && x < USER_WINDOW_X + USER_WINDOW_WIDTH) {
         if (application_count > 0) {
-            applications[selected_application].mouse_click(x, y);
+            applications[selected_application].mouse_click(x - USER_WINDOW_X, y - USER_WINDOW_Y);
         }
     }
 }
 
 void draw_panel()
 {
-    draw_rect(0, HEIGHT - 95, WIDTH, 70, 249, 249, 224);
-    draw_rect(240, HEIGHT - 90, WIDTH - 480, 60, 255, 208, 208);
-    draw_image(45, HEIGHT - 90, 150, 60, mlogo_60, 0, 0, 0);
+    system_draw_rect(0, 0, WIDTH, 30, THEME_BACKGROUND_COLOR);
+    system_draw_image(20, 2, 60, 26, mlogo_26, THEME_TEXT_COLOR);
 
-    for (int i = 0; i < application_count; i++) {
-        if (i == selected_application) {
-            draw_rect(250 + i * 70, HEIGHT - 90, 60, 60, 249, 249, 224);
-        }
-        draw_image(250 + i * 70, HEIGHT - 90, 60, 60, applications[i].icon, 28, 136, 155);
+    if (menu_count >= 3 && application_count > 0) {
+        memcpy(menus[2].name, applications[selected_application].name, 32);
     }
-
+    for (int i = 0; i < menu_count; i++) {
+        if (i == selected_menu) {
+            system_draw_rect((i + 1) * 100, 0, 100, 30, THEME_HIGHLIGHT_COLOR);
+            for (int j = 0; j < menus[i].item_count; j++) {
+                system_draw_rect((i + 1) * 100, 30 + j * 30, 200, 30, THEME_BACKGROUND_COLOR);
+                system_draw_text((i + 1) * 100 + 5, 30 + j * 30 + 22, menus[i].items[j].name, 24, THEME_TEXT_COLOR);
+            }
+        }
+        system_draw_text((i + 1) * 100 + 5, 22, menus[i].name, 24, THEME_TEXT_COLOR);
+    }
     update_info_bar();
 }
 
 void draw_desktop()
 {
-    draw_screen(58, 166, 185);
-    draw_panel();
+    system_draw_screen(THEME_ACCENT_COLOR);
     if (application_count > 0) {
         applications[selected_application].draw();
     }
+    draw_panel();
     draw_cursor();
+
     invalidate_buffer();
     sleep(10);
+}
+
+void select_application()
+{
+    selected_application = last_clicked_menu_item;
+    invalidate();
 }
 
 #include <apps/desktop.h>
@@ -176,6 +262,27 @@ void init_desktop()
         .draw = app_runner_draw,
         .icon = app_runner_icon_60,
         .name = "Runner"
+    });
+
+    add_menu((Menu) {
+        .name = "System"
+    });
+    add_menu_item(&menus[0], (MenuItem) {
+        .name = "Shutdown",
+        .action = (void*)0
+    });
+
+    add_menu((Menu) {.name = "Apps"});
+    for (int i = 0; i < application_count; i++) {
+        add_menu_item(&menus[1], (MenuItem) {
+            .name = "",
+            .action = select_application
+        });
+        memcpy(menus[1].items[i].name, applications[i].name, 32);
+    }
+
+    add_menu((Menu) {
+        .name = "---"   
     });
 
     while (1) {

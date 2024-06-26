@@ -1,9 +1,9 @@
-#include <graphics.h>
+#include <userlib.h>
 
 void app_files_draw()
 {
-    draw_rect(30, 30, WIDTH - 60, HEIGHT - 150, 255, 255, 255);
-    draw_text(40, 70, "Files", 32, 0, 0, 0);
+    draw_screen(255, 255, 255);
+    draw_text(10, 40, "Files", 32, 0, 0, 0);
 }
 
 void app_files_key(char key)
