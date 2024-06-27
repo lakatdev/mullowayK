@@ -101,6 +101,7 @@ void key_press(char key)
 {
     if (application_count > 0) {
         applications[selected_application].key_press(key);
+        invalidate();
     }
 }
 
@@ -165,13 +166,16 @@ void mouse_click(int x, int y)
                 return;
             }
         }
-    } 
+    }
 
+    int previous_selected_menu = selected_menu;
     selected_menu = -1;
     if (y <= 30 && x >= 100 && x < 100 + menu_count * 100) {
         int menu = (x - 100) / 100;
         if (menu >= 0 && menu < menu_count) {
-            selected_menu = menu;
+            if (menu != previous_selected_menu) {
+                selected_menu = menu;
+            }
             invalidate();
         }
     }
@@ -179,6 +183,7 @@ void mouse_click(int x, int y)
         x >= USER_WINDOW_X && x < USER_WINDOW_X + USER_WINDOW_WIDTH) {
         if (application_count > 0) {
             applications[selected_application].mouse_click(x - USER_WINDOW_X, y - USER_WINDOW_Y);
+            invalidate();
         }
     }
 }
