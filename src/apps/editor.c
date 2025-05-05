@@ -17,5 +17,8 @@ void app_editor_mouse(int x, int y)
 
 void app_editor_init()
 {
-
+    add_app_menu_item((MenuItem) {
+        .name = "Run",
+        .action = (void*)0
+    });
 }

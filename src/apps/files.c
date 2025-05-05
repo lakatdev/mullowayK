@@ -18,5 +18,8 @@ void app_files_mouse(int x, int y)
 
 void app_files_init()
 {
-
+    add_app_menu_item((MenuItem) {
+        .name = "Refresh",
+        .action = (void*)0
+    });
 }

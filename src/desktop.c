@@ -43,17 +43,17 @@ typedef struct {
     int width;
     int height;
     char visible;
+    Menu menu;
 } Application;
 
 unsigned char update_required = 1;
 Application applications[9];
 int application_count = 0;
 int selected_application = -1;
-Menu menus[2];
+Menu menus[3];
 int menu_count = 0;
 int selected_menu = -1;
 int last_clicked_menu_item = 0;
-int initialized_app = 0;
 unsigned char desktop_running = 1;
 int moving_application = -1;
 int move_offset_x = 0;
@@ -120,9 +120,11 @@ void add_application(Application app)
     applications[application_count] = app;
     applications[application_count].x = 100;
     applications[application_count].y = 100;
-    applications[application_count].width = 300;
-    applications[application_count].height = 200;
+    applications[application_count].width = 400;
+    applications[application_count].height = 300;
     applications[application_count].visible = 0;
+    memcpy(applications[application_count].menu.name, applications[application_count].name, 32);
+    applications[application_count].menu.item_count = 0;
 
     application_count++;
 }
@@ -132,6 +134,7 @@ void add_menu(Menu menu)
     if (menu_count >= 3) {
         return;
     }
+    menu.item_count = 0;
     menus[menu_count] = menu;
     menu_count++;
 }
@@ -195,6 +198,9 @@ void mouse_click(int x, int y)
                 y >= applications[selected_application].y - 30 && y < applications[selected_application].y) {
                 applications[selected_application].visible = 0;
                 selected_application = -1;
+                memset(menus[2].name, 0, 32);
+                memcpy(menus[2].name, "Desktop", 7);
+                menus[2].item_count = 0;
                 invalidate();
                 return;
             }
@@ -245,7 +251,7 @@ void draw_desktop()
         int new_width = get_mouse_x() - applications[resizing_application].x;
         int new_height = get_mouse_y() - applications[resizing_application].y;
 
-        if (new_width > 150) {
+        if (new_width > 200) {
             applications[resizing_application].width = new_width;
         }
         if (new_height > 100) {
@@ -288,9 +294,16 @@ void draw_desktop()
     sleep(10);
 }
 
+void add_app_menu_item(MenuItem menu_item)
+{
+    add_menu_item(&applications[selected_application].menu, menu_item);
+    menus[2] = applications[selected_application].menu;
+}
+
 void select_application()
 {
     selected_application = last_clicked_menu_item;
+    menus[2] = applications[selected_application].menu;
     if (applications[selected_application].visible == 0) {
         applications[selected_application].init();
     }
@@ -357,6 +370,8 @@ void init_desktop()
         memcpy(menus[1].items[i].name, applications[i].name, 32);
     }
 
+    add_menu((Menu) { .name = "Desktop" });
+
     while (desktop_running) {
         if (update_required) {
             draw_desktop();
@@ -364,4 +379,3 @@ void init_desktop()
         }
     }
 }
-
