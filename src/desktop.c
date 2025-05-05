@@ -28,7 +28,7 @@ unsigned char mlogo_26[] = {
 
 typedef struct {
     char name[32];
-    MenuItem* items;
+    MenuItem items[9];
     int item_count;
 } Menu;
 
@@ -37,25 +37,32 @@ typedef struct {
     void (*key_press)(char key);
     void (*draw)();
     void (*init)();
-    unsigned char* icon;
     char name[32];
-    Menu menu;
+    int x;
+    int y;
+    int width;
+    int height;
+    char visible;
 } Application;
 
 unsigned char update_required = 1;
-Application* applications = (void*)0;
+Application applications[9];
 int application_count = 0;
-int selected_application = 0;
-Menu* menus = (void*)0;
+int selected_application = -1;
+Menu menus[2];
 int menu_count = 0;
 int selected_menu = -1;
 int last_clicked_menu_item = 0;
 int initialized_app = 0;
 unsigned char desktop_running = 1;
+int moving_application = -1;
+int move_offset_x = 0;
+int move_offset_y = 0;
+int resizing_application = -1;
 
 void update_info_bar()
 {
-    char* template = "MEM ~000.00% yy-mm-dd hh:mm:ss";
+    char* template = "MEM 0000 MB -- yy-mm-dd hh:mm:ss";
     char* hex = "0123456789ABCDEF";
 
     char seconds = get_second();
@@ -64,32 +71,31 @@ void update_info_bar()
     char year = get_year();
     char month = get_month();
     char day = get_day();
-    unsigned int memory = get_memory_usage();
+    unsigned int memory = get_memory_size();
 
-    template[5] = '0' + (memory / 10000);
-    memory %= 10000;
-    template[6] = '0' + (memory / 1000);
-    memory %= 1000;
-    template[7] = '0' + (memory / 100);
-    memory %= 100;
-    template[9] = '0' + (memory / 10);
-    memory %= 10;
-    template[10] = '0' + memory;
+    template[4] = '0' + (memory / 1000000000);
+    memory %= 1000000000;
+    template[5] = '0' + (memory / 100000000);
+    memory %= 100000000;
+    template[6] = '0' + (memory / 10000000);
+    memory %= 10000000;
+    template[7] = '0' + (memory / 1000000);
+    memory %= 1000000;
 
-    template[13] = hex[(year >> 4) & 0xF];
-    template[14] = hex[year & 0xF];
-    template[16] = hex[(month >> 4) & 0xF];
-    template[17] = hex[month & 0xF];
-    template[19] = hex[(day >> 4) & 0xF];
-    template[20] = hex[day & 0xF];
-    template[22] = hex[(hours >> 4) & 0xF];
-    template[23] = hex[hours & 0xF];
-    template[25] = hex[(minutes >> 4) & 0xF];
-    template[26] = hex[minutes & 0xF];
-    template[28] = hex[(seconds >> 4) & 0xF];
-    template[29] = hex[seconds & 0xF];
+    template[15] = hex[(year >> 4) & 0xF];
+    template[16] = hex[year & 0xF];
+    template[18] = hex[(month >> 4) & 0xF];
+    template[19] = hex[month & 0xF];
+    template[21] = hex[(day >> 4) & 0xF];
+    template[22] = hex[day & 0xF];
+    template[24] = hex[(hours >> 4) & 0xF];
+    template[25] = hex[hours & 0xF];
+    template[27] = hex[(minutes >> 4) & 0xF];
+    template[28] = hex[minutes & 0xF];
+    template[30] = hex[(seconds >> 4) & 0xF];
+    template[31] = hex[seconds & 0xF];
 
-    system_draw_text(WIDTH - 370, 22, template, 24, THEME_TEXT_COLOR);
+    system_draw_text(WIDTH - 400, 22, template, 24, THEME_TEXT_COLOR);
 }
 
 void invalidate()
@@ -107,53 +113,51 @@ void key_press(char key)
 
 void add_application(Application app)
 {
-    memcpy(app.menu.name, app.name, 32);
-    app.menu.item_count = 0;
-
-    Application* new_apps = (Application*)malloc((application_count + 1) * sizeof(Application));
-    memcpy(new_apps, applications, application_count * sizeof(Application));
-    new_apps[application_count] = app;
-    if (application_count > 0) {
-        free(applications);
+    if (application_count >= 9) {
+        return;
     }
-    applications = new_apps;
-    application_count++;
 
-    initialized_app = application_count - 1;
-    app.init();
+    applications[application_count] = app;
+    applications[application_count].x = 100;
+    applications[application_count].y = 100;
+    applications[application_count].width = 300;
+    applications[application_count].height = 200;
+    applications[application_count].visible = 0;
+
+    application_count++;
 }
 
 void add_menu(Menu menu)
 {
-    Menu* new_menus = (Menu*)malloc((menu_count + 1) * sizeof(Menu));
-    memcpy(new_menus, menus, menu_count * sizeof(Menu));
-    new_menus[menu_count] = menu;
-    if (menu_count > 0) {
-        free(menus);
+    if (menu_count >= 3) {
+        return;
     }
-    menus = new_menus;
+    menus[menu_count] = menu;
     menu_count++;
 }
 
 void add_menu_item(Menu* menu, MenuItem menu_item)
 {
-    MenuItem* new_items = (MenuItem*)malloc((menu->item_count + 1) * sizeof(MenuItem));
-    memcpy(new_items, menu->items, menu->item_count * sizeof(MenuItem));
-    new_items[menu->item_count] = menu_item;
-    if (menu->item_count > 0) {
-        free(menu->items);
+    if (menu->item_count >= 9) {
+        return;
     }
-    menu->items = new_items;
-    menu->item_count++;
-}
 
-void add_app_menu_item(MenuItem menu_item)
-{
-    add_menu_item(&applications[initialized_app].menu, menu_item);
+    menu->items[menu->item_count] = menu_item;
+    menu->item_count++;
 }
 
 void mouse_click(int x, int y)
 {
+    if (moving_application != -1) {
+        moving_application = -1;
+        return;
+    }
+
+    if (resizing_application != -1) {
+        resizing_application = -1;
+        return;
+    }
+
     if (selected_menu != -1) {
         if (y >= 30 && y < 30 + menus[selected_menu].item_count * 30 &&
             x >= (selected_menu + 1) * 100 && x < (selected_menu + 1) * 100 + 200) {
@@ -179,11 +183,33 @@ void mouse_click(int x, int y)
             invalidate();
         }
     }
-    else if (y >= USER_WINDOW_Y && y < USER_WINDOW_Y + USER_WINDOW_HEIGHT &&
-        x >= USER_WINDOW_X && x < USER_WINDOW_X + USER_WINDOW_WIDTH) {
+    else {
         if (application_count > 0) {
-            applications[selected_application].mouse_click(x - USER_WINDOW_X, y - USER_WINDOW_Y);
-            invalidate();
+            if (x >= applications[selected_application].x && x < applications[selected_application].x + applications[selected_application].width &&
+                y >= applications[selected_application].y && y < applications[selected_application].y + applications[selected_application].height) {
+                applications[selected_application].mouse_click(x, y);
+                invalidate();
+                return;
+            }
+            else if (x >= applications[selected_application].x && x < applications[selected_application].x + 30 &&
+                y >= applications[selected_application].y - 30 && y < applications[selected_application].y) {
+                applications[selected_application].visible = 0;
+                selected_application = -1;
+                invalidate();
+                return;
+            }
+            else if (x >= applications[selected_application].x + 30 && x < applications[selected_application].x + 60 &&
+                y >= applications[selected_application].y - 30 && y < applications[selected_application].y) {
+                moving_application = selected_application;
+                move_offset_x = x - applications[selected_application].x;
+                move_offset_y = y - applications[selected_application].y;
+                return;
+            }
+            else if (x >= applications[selected_application].x + 60 && x < applications[selected_application].x + 90 &&
+                y >= applications[selected_application].y - 30 && y < applications[selected_application].y) {
+                resizing_application = selected_application;
+                set_mouse_pos(applications[selected_application].x + applications[selected_application].width, applications[selected_application].y + applications[selected_application].height);
+            }
         }
     }
 }
@@ -209,9 +235,52 @@ void draw_panel()
 void draw_desktop()
 {
     system_draw_screen(THEME_ACCENT_COLOR);
-    if (application_count > 0) {
-        applications[selected_application].draw();
+
+    if (moving_application != -1) {
+        applications[moving_application].x = get_mouse_x() - move_offset_x;
+        applications[moving_application].y = get_mouse_y() - move_offset_y;
     }
+
+    if (resizing_application != -1) {
+        int new_width = get_mouse_x() - applications[resizing_application].x;
+        int new_height = get_mouse_y() - applications[resizing_application].y;
+
+        if (new_width > 150) {
+            applications[resizing_application].width = new_width;
+        }
+        if (new_height > 100) {
+            applications[resizing_application].height = new_height;
+        }
+    }
+
+    for (int i = 0; i < application_count; i++) {
+        if (applications[i].visible == 1 && i != selected_application) {
+
+            system_draw_rect(applications[i].x, applications[i].y - 30, applications[i].width, 30, THEME_BACKGROUND_COLOR);
+            system_draw_text(applications[i].x + 5, applications[i].y - 10, applications[i].name, 24, THEME_TEXT_COLOR);
+            system_draw_rect(applications[i].x, applications[i].y, applications[i].width, applications[i].height, THEME_BACKGROUND_COLOR);
+
+            system_set_clip_region(applications[i].x, applications[i].y, applications[i].width, applications[i].height);
+            applications[i].draw();
+            system_reset_clip_region();
+        }
+    }
+    if (application_count > 0 && selected_application != -1) {
+        if (applications[selected_application].visible == 1) {
+            system_draw_rect(applications[selected_application].x, applications[selected_application].y - 30, applications[selected_application].width, 30, THEME_HIGHLIGHT_COLOR);
+            system_draw_text(applications[selected_application].x + 95, applications[selected_application].y - 10, applications[selected_application].name, 24, THEME_TEXT_COLOR);
+            system_draw_rect(applications[selected_application].x, applications[selected_application].y, applications[selected_application].width, applications[selected_application].height, THEME_HIGHLIGHT_COLOR);
+
+            system_draw_rect(applications[selected_application].x, applications[selected_application].y - 30, 30, 30, 255, 0, 0);
+            system_draw_rect(applications[selected_application].x + 30, applications[selected_application].y - 30, 30, 30, 0, 255, 0);
+            system_draw_rect(applications[selected_application].x + 60, applications[selected_application].y - 30, 30, 30, 0, 0, 255);
+
+            system_set_clip_region(applications[selected_application].x, applications[selected_application].y, applications[selected_application].width, applications[selected_application].height);
+            applications[selected_application].draw();
+            system_reset_clip_region();
+        }
+    }
+
     draw_panel();
     draw_cursor();
 
@@ -222,7 +291,10 @@ void draw_desktop()
 void select_application()
 {
     selected_application = last_clicked_menu_item;
-    memcpy(&menus[2], &applications[selected_application].menu, sizeof(Menu));
+    if (applications[selected_application].visible == 0) {
+        applications[selected_application].init();
+    }
+    applications[selected_application].visible = 1;
     invalidate();
 }
 
@@ -231,7 +303,6 @@ void terminate_desktop()
     desktop_running = 0;
 }
 
-#include <apps/desktop.h>
 #include <apps/info.h>
 #include <apps/files.h>
 #include <apps/editor.h>
@@ -240,20 +311,10 @@ void terminate_desktop()
 void init_desktop()
 {
     add_application((Application) {
-        .init = app_desktop_init,
-        .mouse_click = app_desktop_mouse,
-        .key_press = app_desktop_key,
-        .draw = app_desktop_draw,
-        .icon = app_desktop_icon_60,
-        .name = "Desktop"
-    });
-
-    add_application((Application) {
         .init = app_info_init,
         .mouse_click = app_info_mouse,
         .key_press = app_info_key,
         .draw = app_info_draw,
-        .icon = app_info_icon_60,
         .name = "Info"
     });
 
@@ -262,7 +323,6 @@ void init_desktop()
         .mouse_click = app_files_mouse,
         .key_press = app_files_key,
         .draw = app_files_draw,
-        .icon = app_files_icon_60,
         .name = "Files"
     });
 
@@ -271,7 +331,6 @@ void init_desktop()
         .mouse_click = app_editor_mouse,
         .key_press = app_editor_key,
         .draw = app_editor_draw,
-        .icon = app_editor_icon_60,
         .name = "Editor"
     });
 
@@ -280,7 +339,6 @@ void init_desktop()
         .mouse_click = app_runner_mouse,
         .key_press = app_runner_key,
         .draw = app_runner_draw,
-        .icon = app_runner_icon_60,
         .name = "Runner"
     });
 
@@ -298,9 +356,6 @@ void init_desktop()
         });
         memcpy(menus[1].items[i].name, applications[i].name, 32);
     }
-
-    add_menu((Menu) { .name = "---" });
-    memcpy(&menus[2], &applications[selected_application].menu, sizeof(Menu));
 
     while (desktop_running) {
         if (update_required) {

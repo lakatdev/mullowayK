@@ -15,7 +15,6 @@ objects = obj/loader.o \
 		obj/desktop.o \
 		obj/math.o \
 		obj/userlib.o \
-		obj/apps/desktop.o \
 		obj/apps/runner.o \
 		obj/apps/editor.o \
 		obj/apps/files.o \

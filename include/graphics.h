@@ -2,9 +2,7 @@
 #define GRAPHICS_H
 
 #define WIDTH 1280
-#define HEIGHT 720
-#define USER_WINDOW_X 200
-#define USER_WINDOW_Y 60
+#define HEIGHT 1024
 
 #define SYSTEM_FONT ubuntu_mono_v2_mfp
 
@@ -23,5 +21,8 @@ void system_draw_image(int x, int y, int width, int height, unsigned char* image
 void system_draw_thin_line(int x1, int y1, int x2, int y2, unsigned char r, unsigned char g, unsigned char b);
 void update_video();
 void invalidate_buffer();
+void system_reset_clip_region();
+void system_set_clip_region(int x, int y, int width, int height);
+void system_get_clip_region(int* x, int* y, int* width, int* height);
 
 #endif

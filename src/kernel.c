@@ -139,18 +139,18 @@ void set_timer_freq(unsigned int divisor)
 
 void kernel_main(const void* multiboot_struct)
 {
+    // INITIALIZE
+
     printf("lasang please\n");
     init_gdt();
     enable_sse();
 
-    // init memory manager with start position received from multiboot header
+    // MEMORY INFO
+
     unsigned int* header = (unsigned int*)(((unsigned int)multiboot_struct) + 8);
-    // 10MB as begin heap address
     unsigned int heap = 10 * 1024 * 1024;
 
-    init_memory(heap, (*header) * 1024 - heap - 10 * 1024);
-
-    // memory info
+    init_memory((*header) * 1024 - heap - 10 * 1024);
     printf("Heap start:");
     print_hex(heap);
     printf("\n");
@@ -158,11 +158,13 @@ void kernel_main(const void* multiboot_struct)
     print_hex((*header) * 1024 - heap - 10 * 1024);
     printf("\n");
 
-    // interrupts (idt table) and programmable interval timer
+    // INTERNAL TIMER
+
     set_timer_freq(1193);
     init_idt();
 
-    // user interface
+    // USER INTERFACE
+
     unsigned char* buffer = (unsigned char*)header[20];
     init_graphics(buffer);
     init_mouse();
@@ -172,7 +174,8 @@ void kernel_main(const void* multiboot_struct)
     sleep(1000);
     init_desktop();
 
-    // desktop exited
+    // DESKTOP CLOSED
+
     system_draw_screen(0, 0, 0);
     system_draw_image(WIDTH / 2 - 75, HEIGHT / 2 - 30, 150, 60, mlogo_60, 255, 255, 255);
     system_draw_text(10, 26, "It is now safe to turn off your computer.", 24, 0xdb, 0x81, 0x29);

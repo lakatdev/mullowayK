@@ -6,33 +6,45 @@
 
 void draw_screen(unsigned char r, unsigned char g, unsigned char b) 
 {
-    system_draw_rect(USER_WINDOW_X, USER_WINDOW_Y, USER_WINDOW_WIDTH, USER_WINDOW_HEIGHT, r, g, b);
+    int ux, uy, uw, uh;
+    system_get_clip_region(&ux, &uy, &uw, &uh);
+
+    system_draw_rect(ux, uy, uw, uh, r, g, b);
 }
 
 void draw_pixel(int x, int y, unsigned char r, unsigned char g, unsigned char b)
 {
-    if (x < 0 || x >= USER_WINDOW_WIDTH || y < 0 || y >= USER_WINDOW_HEIGHT) {
+    int ux, uy, uw, uh;
+    system_get_clip_region(&ux, &uy, &uw, &uh);
+
+    if (x < 0 || x >= uw || y < 0 || y >= uh) {
         return;
     }
-    system_draw_pixel(x + USER_WINDOW_X, y + USER_WINDOW_Y, r, g, b);
+    system_draw_pixel(x + ux, y + uy, r, g, b);
 }
 
 void draw_rect(int x, int y, int width, int height, unsigned char r, unsigned char g, unsigned char b) 
 {
-    if (x < 0 || x >= USER_WINDOW_WIDTH || y < 0 || y >= USER_WINDOW_HEIGHT) {
+    int ux, uy, uw, uh;
+    system_get_clip_region(&ux, &uy, &uw, &uh);
+
+    if (x < 0 || x >= uw || y < 0 || y >= uh) {
         return;
     }
-    width = (x + width > USER_WINDOW_WIDTH) ? USER_WINDOW_WIDTH - x : width;
-    height = (y + height > USER_WINDOW_HEIGHT) ? USER_WINDOW_HEIGHT - y : height;
-    system_draw_rect(x + USER_WINDOW_X, y + USER_WINDOW_Y, width, height, r, g, b);
+    width = (x + width > uw) ? uw - x : width;
+    height = (y + height > uh) ? uh - y : height;
+    system_draw_rect(x + ux, y + uy, width, height, r, g, b);
 }
 
 void draw_line(int x1, int y1, int x2, int y2, int width, unsigned char r, unsigned char g, unsigned char b)
 {
-    if (x1 < 0 || x1 >= USER_WINDOW_WIDTH || y1 < 0 || y1 >= USER_WINDOW_HEIGHT) {
+    int ux, uy, uw, uh;
+    system_get_clip_region(&ux, &uy, &uw, &uh);
+
+    if (x1 < 0 || x1 >= uw || y1 < 0 || y1 >= uh) {
         return;
     }
-    system_draw_line(x1 + USER_WINDOW_X, y1 + USER_WINDOW_Y, x2 + USER_WINDOW_X, y2 + USER_WINDOW_Y, width, r, g, b);
+    system_draw_line(x1 + ux, y1 + uy, x2 + ux, y2 + uy, width, r, g, b);
 
 
     int dxabs = abs(x2 - x1);
@@ -43,20 +55,20 @@ void draw_line(int x1, int y1, int x2, int y2, int width, unsigned char r, unsig
 
     if (dxabs >= dyabs) {
         for (int i = start; i < end; i++) {
-            if (x1 < 0 || x1 >= USER_WINDOW_WIDTH || y1 + i < 0 || y1 + i >= USER_WINDOW_HEIGHT ||
-                x2 < 0 || x2 >= USER_WINDOW_WIDTH || y2 + i < 0 || y2 + i >= USER_WINDOW_HEIGHT) {
+            if (x1 < 0 || x1 >= uw || y1 + i < 0 || y1 + i >= uh ||
+                x2 < 0 || x2 >= uw || y2 + i < 0 || y2 + i >= uh) {
                 return;
             }
-            system_draw_thin_line(x1 + USER_WINDOW_X, y1 + USER_WINDOW_Y + i, x2 + USER_WINDOW_X, y2 + USER_WINDOW_Y + i, r, g, b);
+            system_draw_thin_line(x1 + ux, y1 + uy + i, x2 + ux, y2 + uy + i, r, g, b);
         }
     }
     else {
         for (int i = start; i < end; i++) {
-            if (x1 + i < 0 || x1 + i >= USER_WINDOW_WIDTH || y1 < 0 || y1 >= USER_WINDOW_HEIGHT ||
-                x2 + i < 0 || x2 + i >= USER_WINDOW_WIDTH || y2 < 0 || y2 >= USER_WINDOW_HEIGHT) {
+            if (x1 + i < 0 || x1 + i >= uw || y1 < 0 || y1 >= uh ||
+                x2 + i < 0 || x2 + i >= uw || y2 < 0 || y2 >= uh) {
                 return;
             }
-            system_draw_thin_line(x1 + USER_WINDOW_X + i, y1 + USER_WINDOW_Y, x2 + USER_WINDOW_X + i, y2 + USER_WINDOW_Y, r, g, b);
+            system_draw_thin_line(x1 + ux + i, y1 + uy, x2 + ux + i, y2 + uy, r, g, b);
         }
     }
 
@@ -64,7 +76,8 @@ void draw_line(int x1, int y1, int x2, int y2, int width, unsigned char r, unsig
 
 void draw_circle(int x, int y, int radius, int width, unsigned char r, unsigned char g, unsigned char b)
 {
-
+    int ux, uy, uw, uh;
+    system_get_clip_region(&ux, &uy, &uw, &uh);
 }
 
 void draw_character(int x, int y, unsigned char* data, unsigned char r, unsigned char g, unsigned char b)
@@ -164,9 +177,12 @@ void draw_text(int x, int y, const char* text, int size, unsigned char r, unsign
 
 void draw_image(int x, int y, int width, int height, unsigned char* image, unsigned char r, unsigned char g, unsigned char b)
 {
-    if (x < 0 || x >= USER_WINDOW_WIDTH || y < 0 || y >= USER_WINDOW_HEIGHT ||
-        x + width < 0 || x + width >= USER_WINDOW_WIDTH || y + height < 0 || y + height >= USER_WINDOW_HEIGHT) {
+    int ux, uy, uw, uh;
+    system_get_clip_region(&ux, &uy, &uw, &uh);
+
+    if (x < 0 || x >= uw || y < 0 || y >= uh ||
+        x + width < 0 || x + width >= uw || y + height < 0 || y + height >= uh) {
         return;
     }
-    system_draw_image(x + USER_WINDOW_X, y + USER_WINDOW_Y, width, height, image, r, g, b);
+    system_draw_image(x + ux, y + uy, width, height, image, r, g, b);
 }

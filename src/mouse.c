@@ -107,6 +107,34 @@ void mouse_wait(unsigned char type)
     }
 }
 
+int get_mouse_x()
+{
+    return abs_x;
+}
+
+int get_mouse_y()
+{
+    return abs_y;
+}
+
+void set_mouse_pos(int x, int y)
+{
+    if (x < 0) {
+        x = 0;
+    }
+    if (x >= WIDTH) {
+        x = WIDTH - 1;
+    }
+    if (y < 0) {
+        y = 0;
+    }
+    if (y >= HEIGHT) {
+        y = HEIGHT - 1;
+    }
+    abs_x = x;
+    abs_y = y;
+}
+
 void mouse_write(unsigned char write)
 {
     mouse_wait(1);

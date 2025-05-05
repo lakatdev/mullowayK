@@ -8,6 +8,10 @@ unsigned char* video;
 unsigned char buffer[WIDTH * HEIGHT * 4];
 unsigned char video_live = 0;
 unsigned char frame_cap = 0;
+int clip_region_x = 0;
+int clip_region_y = 0;
+int clip_region_width = WIDTH;
+int clip_region_height = HEIGHT;
 
 unsigned char convert_ascii[128] = {
     0,0,0,0,0,0,0,0,108,109,107,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -231,4 +235,41 @@ void update_video()
         memcpy_sse(video, buffer, WIDTH * HEIGHT * 4);
         frame_cap = 0;
     }
+}
+
+void system_reset_clip_region()
+{
+    clip_region_x = 0;
+    clip_region_y = 0;
+    clip_region_width = WIDTH;
+    clip_region_height = HEIGHT;
+}
+
+void system_set_clip_region(int x, int y, int width, int height)
+{
+    if (x < 0) {
+        x = 0;
+    }
+    if (y < 0) {
+        y = 0;
+    }
+    if (width > WIDTH) {
+        width = WIDTH;
+    }
+    if (height > HEIGHT) {
+        height = HEIGHT;
+    }
+
+    clip_region_x = x;
+    clip_region_y = y;
+    clip_region_width = width;
+    clip_region_height = height;
+}
+
+void system_get_clip_region(int* x, int* y, int* width, int* height)
+{
+    *x = clip_region_x;
+    *y = clip_region_y;
+    *width = clip_region_width;
+    *height = clip_region_height;
 }
