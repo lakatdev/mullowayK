@@ -168,6 +168,7 @@ void kernel_main(const void* multiboot_struct)
     unsigned char* buffer = (unsigned char*)header[20];
     init_graphics(buffer);
     init_mouse();
+    init_serial();
     system_draw_screen(0, 0, 0);
     system_draw_image(WIDTH / 2 - 75, HEIGHT / 2 - 30, 150, 60, mlogo_60, 255, 255, 255);
     invalidate_buffer();

@@ -14,6 +14,7 @@ objects = obj/loader.o \
 		obj/mouse.o \
 		obj/desktop.o \
 		obj/math.o \
+		obj/serial.o \
 		obj/userlib.o \
 		obj/apps/runner.o \
 		obj/apps/editor.o \
