@@ -1,6 +1,8 @@
 #include <serial.h>
 #include <port.h>
 
+#define COM1 0x3F8
+
 void init_serial()
 {
     outb(COM1 + 1, 0x00);
@@ -12,10 +14,18 @@ void init_serial()
     outb(COM1 + 4, 0x0B);
 }
 
-void serial_write(const uint8_t* data, unsigned int size)
+void serial_write(const unsigned char* data, unsigned int size)
 {
-    for (uint32_t i = 0; i < len; ++i) {
+    for (unsigned int i = 0; i < size; ++i) {
         while (!(inb(COM1 + 5) & 0x20));
         outb(COM1, data[i]);
+    }
+}
+
+void serial_read(unsigned char* data, unsigned int size)
+{
+    for (unsigned int i = 0; i < size; ++i) {
+        while (!(inb(COM1 + 5) & 0x01));
+        data[i] = inb(COM1);
     }
 }
