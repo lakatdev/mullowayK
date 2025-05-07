@@ -306,6 +306,7 @@ void select_application()
     menus[2] = applications[selected_application].menu;
     if (applications[selected_application].visible == 0) {
         applications[selected_application].init();
+        applications[selected_application].menu.item_count = 0;
     }
     applications[selected_application].visible = 1;
     invalidate();

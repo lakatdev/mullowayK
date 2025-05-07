@@ -1,5 +1,6 @@
 #include <serial.h>
 #include <port.h>
+#include <interface.h>
 
 #define COM1 0x3F8
 
@@ -12,6 +13,7 @@ void init_serial()
     outb(COM1 + 3, 0x03);
     outb(COM1 + 2, 0xC7);
     outb(COM1 + 4, 0x0B);
+    printf("COM1 port initialized.\n");
 }
 
 void serial_write(const unsigned char* data, unsigned int size)
