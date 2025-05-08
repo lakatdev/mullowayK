@@ -24,7 +24,7 @@ void* memset(void *dest, char val, int count)
 
 unsigned int get_memory_size()
 {
-    return (unsigned int)((float)total_available);
+    return total_available;
 }
 
 unsigned int strlen(const char *str)
