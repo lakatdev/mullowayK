@@ -26,3 +26,10 @@ unsigned int get_memory_size()
 {
     return (unsigned int)((float)total_available);
 }
+
+unsigned int strlen(const char *str)
+{
+    unsigned int len = 0;
+    while (*str++) len++;
+    return len;
+}
