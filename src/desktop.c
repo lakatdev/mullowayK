@@ -71,16 +71,15 @@ void update_info_bar()
     char year = get_year();
     char month = get_month();
     char day = get_day();
-    unsigned int memory = get_memory_size();
+    unsigned int memory = get_memory_size() / (1024 * 1024);
 
-    template[4] = '0' + (memory / 1000000000);
-    memory %= 1000000000;
-    template[5] = '0' + (memory / 100000000);
-    memory %= 100000000;
-    template[6] = '0' + (memory / 10000000);
-    memory %= 10000000;
-    template[7] = '0' + (memory / 1000000);
-    memory %= 1000000;
+    template[4] = '0' + (memory / 1000);
+    memory %= 1000;
+    template[5] = '0' + (memory / 100);
+    memory %= 100;
+    template[6] = '0' + (memory / 10);
+    memory %= 10;
+    template[7] = '0' + memory;
 
     template[15] = hex[(year >> 4) & 0xF];
     template[16] = hex[year & 0xF];
