@@ -200,12 +200,12 @@ void irq0_handler(void)
 {
     uptime++;
     
-    if ((unsigned int)uptime % 15 == 0) {
-        update_video();
-    }
-
     if ((unsigned int)uptime % 200 == 0) {
         invalidate();
+    }
+
+    if ((unsigned int)uptime % 15 == 0) {
+        update_video();
     }
 
     if (timer_ticks > 0) {

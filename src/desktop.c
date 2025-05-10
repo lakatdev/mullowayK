@@ -227,6 +227,7 @@ void draw_panel()
     for (int i = 0; i < menu_count; i++) {
         if (i == selected_menu) {
             system_draw_rect((i + 1) * 100, 0, 100, 30, THEME_HIGHLIGHT_COLOR);
+            system_draw_rect((i + 1) * 100 - 3, 27, 206, menus[i].item_count * 30 + 6, THEME_TEXT_COLOR);
             for (int j = 0; j < menus[i].item_count; j++) {
                 system_draw_rect((i + 1) * 100, 30 + j * 30, 200, 30, THEME_BACKGROUND_COLOR);
                 system_draw_text((i + 1) * 100 + 5, 30 + j * 30 + 22, menus[i].items[j].name, 24, THEME_TEXT_COLOR);
@@ -244,6 +245,13 @@ void draw_desktop()
     if (moving_application != -1) {
         applications[moving_application].x = get_mouse_x() - move_offset_x;
         applications[moving_application].y = get_mouse_y() - move_offset_y;
+
+        if (applications[moving_application].x < 0) {
+            applications[moving_application].x = 0;
+        }
+        if (applications[moving_application].y < 60) {
+            applications[moving_application].y = 60;
+        }
     }
 
     if (resizing_application != -1) {
@@ -260,10 +268,8 @@ void draw_desktop()
 
     for (int i = 0; i < application_count; i++) {
         if (applications[i].visible == 1 && i != selected_application) {
-
-            system_draw_rect(applications[i].x, applications[i].y - 30, applications[i].width, 30, THEME_BACKGROUND_COLOR);
+            system_draw_rect(applications[i].x - 3, applications[i].y - 33, applications[i].width + 6, applications[i].height + 36, THEME_BACKGROUND_COLOR);
             system_draw_text(applications[i].x + 5, applications[i].y - 10, applications[i].name, 24, THEME_TEXT_COLOR);
-            system_draw_rect(applications[i].x, applications[i].y, applications[i].width, applications[i].height, THEME_BACKGROUND_COLOR);
 
             system_set_clip_region(applications[i].x, applications[i].y, applications[i].width, applications[i].height);
             applications[i].draw();
@@ -272,9 +278,8 @@ void draw_desktop()
     }
     if (application_count > 0 && selected_application != -1) {
         if (applications[selected_application].visible == 1) {
-            system_draw_rect(applications[selected_application].x, applications[selected_application].y - 30, applications[selected_application].width, 30, THEME_HIGHLIGHT_COLOR);
+            system_draw_rect(applications[selected_application].x - 3, applications[selected_application].y - 33, applications[selected_application].width + 6, applications[selected_application].height + 36, THEME_HIGHLIGHT_COLOR);
             system_draw_text(applications[selected_application].x + 95, applications[selected_application].y - 10, applications[selected_application].name, 24, THEME_TEXT_COLOR);
-            system_draw_rect(applications[selected_application].x, applications[selected_application].y, applications[selected_application].width, applications[selected_application].height, THEME_HIGHLIGHT_COLOR);
 
             system_draw_rect(applications[selected_application].x, applications[selected_application].y - 30, 30, 30, 255, 0, 0);
             system_draw_rect(applications[selected_application].x + 30, applications[selected_application].y - 30, 30, 30, 0, 255, 0);
@@ -304,8 +309,8 @@ void select_application()
     selected_application = last_clicked_menu_item;
     menus[2] = applications[selected_application].menu;
     if (applications[selected_application].visible == 0) {
-        applications[selected_application].init();
         applications[selected_application].menu.item_count = 0;
+        applications[selected_application].init();
     }
     applications[selected_application].visible = 1;
     invalidate();
@@ -320,6 +325,7 @@ void terminate_desktop()
 #include <apps/files.h>
 #include <apps/editor.h>
 #include <apps/runner.h>
+#include <apps/network-device.h>
 
 void init_desktop()
 {
@@ -353,6 +359,14 @@ void init_desktop()
         .key_press = app_runner_key,
         .draw = app_runner_draw,
         .name = "Runner"
+    });
+
+    add_application((Application) {
+        .init = app_network_device_init,
+        .mouse_click = app_network_device_mouse,
+        .key_press = app_network_device_key,
+        .draw = app_network_device_draw,
+        .name = "Network Device"
     });
 
     add_menu((Menu) { .name = "System" });
