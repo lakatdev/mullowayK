@@ -295,7 +295,7 @@ void draw_desktop()
     draw_cursor();
 
     invalidate_buffer();
-    sleep(10);
+    sleep(15);
 }
 
 void add_app_menu_item(MenuItem menu_item)
