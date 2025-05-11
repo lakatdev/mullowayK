@@ -145,19 +145,7 @@ void kernel_main(const void* multiboot_struct)
     printf("lasang please\n");
     init_gdt();
     enable_sse();
-
-    // MEMORY INFO
-
     unsigned int* header = (unsigned int*)(((unsigned int)multiboot_struct) + 8);
-    unsigned int heap = 10 * 1024 * 1024;
-
-    init_memory((*header) * 1024 - heap - 10 * 1024);
-    printf("Heap start:");
-    print_hex(heap);
-    printf("\n");
-    printf("Available memory:");
-    print_hex((*header) * 1024 - heap - 10 * 1024);
-    printf("\n");
 
     // INTERNAL TIMER
 

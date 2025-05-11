@@ -62,7 +62,7 @@ int resizing_application = -1;
 
 void update_info_bar()
 {
-    char* template = "MEM 0000 MB -- yy-mm-dd hh:mm:ss";
+    char* template = "yy-mm-dd hh:mm:ss";
     char* hex = "0123456789ABCDEF";
 
     char seconds = get_second();
@@ -71,30 +71,21 @@ void update_info_bar()
     char year = get_year();
     char month = get_month();
     char day = get_day();
-    unsigned int memory = get_memory_size() / (1024 * 1024);
 
-    template[4] = '0' + (memory / 1000);
-    memory %= 1000;
-    template[5] = '0' + (memory / 100);
-    memory %= 100;
-    template[6] = '0' + (memory / 10);
-    memory %= 10;
-    template[7] = '0' + memory;
+    template[0] = hex[(year >> 4) & 0xF];
+    template[1] = hex[year & 0xF];
+    template[3] = hex[(month >> 4) & 0xF];
+    template[4] = hex[month & 0xF];
+    template[6] = hex[(day >> 4) & 0xF];
+    template[7] = hex[day & 0xF];
+    template[9] = hex[(hours >> 4) & 0xF];
+    template[10] = hex[hours & 0xF];
+    template[12] = hex[(minutes >> 4) & 0xF];
+    template[13] = hex[minutes & 0xF];
+    template[15] = hex[(seconds >> 4) & 0xF];
+    template[16] = hex[seconds & 0xF];
 
-    template[15] = hex[(year >> 4) & 0xF];
-    template[16] = hex[year & 0xF];
-    template[18] = hex[(month >> 4) & 0xF];
-    template[19] = hex[month & 0xF];
-    template[21] = hex[(day >> 4) & 0xF];
-    template[22] = hex[day & 0xF];
-    template[24] = hex[(hours >> 4) & 0xF];
-    template[25] = hex[hours & 0xF];
-    template[27] = hex[(minutes >> 4) & 0xF];
-    template[28] = hex[minutes & 0xF];
-    template[30] = hex[(seconds >> 4) & 0xF];
-    template[31] = hex[seconds & 0xF];
-
-    system_draw_text(WIDTH - 400, 22, template, 24, THEME_TEXT_COLOR);
+    system_draw_text(WIDTH - 220, 22, template, 24, THEME_TEXT_COLOR);
 }
 
 void invalidate()
