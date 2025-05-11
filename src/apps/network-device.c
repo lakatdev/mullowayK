@@ -27,6 +27,7 @@ void app_network_device_send_ping()
     printf(response_command);
     printf(", ");
     printf(response_data);
+    printf("\n");
 
     if (strcmp(response_command, "SP") == 0) {
         if (strcmp(response_data, "pong") == 0) {
