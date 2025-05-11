@@ -15,11 +15,19 @@ void app_network_device_send_ping()
     send_command("SP", (void*)0, 0);
     printf("Ping sent.\n");
     char response_command[3] = {0};
-    char response_data[4] = {0};
+    char response_data[5] = {0};
     unsigned int size = 0;
-    //receive_command_with_timeout(response_command, response_data, &size, 4);
-    printf("Received command.\n");
+    
+    serial_read((unsigned char*)response_command, 2);
+    serial_read((unsigned char*)response_data, 4);
+
+    printf("Received command:\n");
     response_command[2] = '\0';
+    response_data[4] = '\0';
+    printf(response_command);
+    printf(", ");
+    printf(response_data);
+
     if (strcmp(response_command, "SP") == 0) {
         if (strcmp(response_data, "pong") == 0) {
             app_network_device_last_ping_success = 1;
