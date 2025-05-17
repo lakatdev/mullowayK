@@ -366,7 +366,7 @@ void init_desktop()
         .action = terminate_desktop
     });
 
-    add_menu((Menu) { .name = "Apps" });
+    add_menu((Menu) { .name = "Tools" });
     for (int i = 0; i < application_count; i++) {
         add_menu_item(&menus[1], (MenuItem) {
             .name = "",
