@@ -186,3 +186,17 @@ void draw_image(int x, int y, int width, int height, unsigned char* image, unsig
     }
     system_draw_image(x + ux, y + uy, width, height, image, r, g, b);
 }
+
+int get_window_width()
+{
+    int ux, uy, uw, uh;
+    system_get_clip_region(&ux, &uy, &uw, &uh);
+    return uw;
+}
+
+int get_window_height()
+{
+    int ux, uy, uw, uh;
+    system_get_clip_region(&ux, &uy, &uw, &uh);
+    return uh;
+}
