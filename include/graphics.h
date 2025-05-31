@@ -1,8 +1,8 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
-#define WIDTH 1280
-#define HEIGHT 1024
+#define WIDTH 800
+#define HEIGHT 600
 
 #define SYSTEM_FONT ubuntu_mono_v2_mfp
 

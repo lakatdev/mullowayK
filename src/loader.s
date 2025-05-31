@@ -11,7 +11,7 @@
     .long CHECKSUM
     .long 0, 0, 0, 0, 0
     .long 0
-    .long 1280, 1024, 32
+    .long 800, 600, 32
 
 .section .text
 
