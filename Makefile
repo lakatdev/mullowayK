@@ -20,7 +20,7 @@ objects = obj/loader.o \
 		obj/apps/editor.o \
 		obj/apps/files.o \
 		obj/apps/info.o \
-		obj/apps/network-device.o \
+		obj/apps/thermal-printer.o \
         obj/kernel.o
 
 obj/%.o: src/%.c

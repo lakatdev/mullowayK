@@ -316,7 +316,7 @@ void terminate_desktop()
 #include <apps/files.h>
 #include <apps/editor.h>
 #include <apps/runner.h>
-#include <apps/network-device.h>
+#include <apps/thermal-printer.h>
 
 void init_desktop()
 {
@@ -353,11 +353,11 @@ void init_desktop()
     });
 
     add_application((Application) {
-        .init = app_network_device_init,
-        .mouse_click = app_network_device_mouse,
-        .key_press = app_network_device_key,
-        .draw = app_network_device_draw,
-        .name = "Network Device"
+        .init = app_thermal_printer_init,
+        .mouse_click = app_thermal_printer_mouse,
+        .key_press = app_thermal_printer_key,
+        .draw = app_thermal_printer_draw,
+        .name = "Thermal Printer"
     });
 
     add_menu((Menu) { .name = "System" });
