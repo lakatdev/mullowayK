@@ -3,6 +3,7 @@
 #include <fonts.mfp.h>
 #include <memory.h>
 #include <userlib.h>
+#include <serial.h>
 
 void draw_screen(unsigned char r, unsigned char g, unsigned char b) 
 {
@@ -199,4 +200,14 @@ int get_window_height()
     int ux, uy, uw, uh;
     system_get_clip_region(&ux, &uy, &uw, &uh);
     return uh;
+}
+
+void serial_write(const unsigned char* data, unsigned int size)
+{
+    com1_write(data, size);
+}
+
+void serial_read(unsigned char* data, unsigned int size)
+{
+    com1_read(data, size);
 }

@@ -20,6 +20,8 @@ void draw_text(int x, int y, const char* text, int size, unsigned char r, unsign
 void draw_image(int x, int y, int width, int height, unsigned char* image, unsigned char r, unsigned char g, unsigned char b);
 int get_window_width();
 int get_window_height();
+void serial_write(const unsigned char* data, unsigned int size);
+void serial_read(unsigned char* data, unsigned int size);
 
 void add_app_menu_item(MenuItem menu_item);
 
