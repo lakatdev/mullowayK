@@ -21,6 +21,8 @@ objects = obj/loader.o \
 		obj/apps/files.o \
 		obj/apps/info.o \
 		obj/apps/thermal-printer.o \
+		obj/interpreter/interpreter.o \
+		obj/interpreter/instructions.o \
         obj/kernel.o
 
 obj/%.o: src/%.c
