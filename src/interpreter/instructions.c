@@ -164,7 +164,7 @@ void interpreter_execute_array_set(Interpreter_Instance* instance, char** tokens
 
     Interpreter_Value* array_var = interpreter_get_variable(instance, array_name);
     if (!array_var) {
-        printf("Error: ARRAY_SET: Variable not found.\n";
+        printf("Error: ARRAY_SET: Variable not found.\n");
         interpreter_halt();
         return;
     }
@@ -210,14 +210,14 @@ void interpreter_execute_array_get(Interpreter_Instance* instance, char** tokens
 
     Interpreter_Value* array_var = interpreter_get_variable(instance, array_name);
     if (!array_var) {
-        printf("Error: ARRAY_GET: Variable '%s' not found.\n", array_name);
+        printf("Error: ARRAY_GET: Variable not found.\n");
         interpreter_halt();
         return;
     }
     Interpreter_Value index_val = interpreter_get_value_of_token(instance, index_token);
     int index = (index_val.type == TYPE_INT) ? index_val.i : (index_val.type == TYPE_BYTE ? index_val.b : -1);
     if (index < 0) {
-        printf("Error: ARRAY_GET: Index %d out of bounds.\n", index);
+        printf("Error: ARRAY_GET: Index out of bounds.\n");
         interpreter_halt();
         return;
     }
@@ -227,7 +227,7 @@ void interpreter_execute_array_get(Interpreter_Instance* instance, char** tokens
     switch (array_var->type) {
         case TYPE_IARRAY:
             if (index >= array_var->iarray.size) {
-                printf("Error: ARRAY_GET: Index %d out of bounds for iarray.\n", index);
+                printf("Error: ARRAY_GET: Index out of bounds for iarray.\n");
                 interpreter_halt();
                 return;
             }
@@ -236,7 +236,7 @@ void interpreter_execute_array_get(Interpreter_Instance* instance, char** tokens
             break;
         case TYPE_FARRAY:
             if (index >= array_var->farray.size) {
-                printf("Error: ARRAY_GET: Index %d out of bounds for farray.\n", index);
+                printf("Error: ARRAY_GET: Index out of bounds for farray.\n");
                 interpreter_halt();
                 return;
             }
@@ -245,7 +245,7 @@ void interpreter_execute_array_get(Interpreter_Instance* instance, char** tokens
             break;
         case TYPE_STRING:
             if (index >= array_var->string.size) {
-                printf("Error: ARRAY_GET: Index %d out of bounds for string.\n", index);
+                printf("Error: ARRAY_GET: Index out of bounds for string.\n");
                 interpreter_halt();
                 return;
             }
@@ -270,7 +270,7 @@ void interpreter_execute_free(Interpreter_Instance* instance, char** tokens, int
     const char* var_name = tokens[1];
     Interpreter_Value* var = interpreter_get_variable(instance, var_name);
     if (!var) {
-        printf("Error: FREE: Variable '%s' not found.\n", var_name);
+        printf("Error: FREE: Variable not found.\n");
         interpreter_halt();
         return;
     }
@@ -377,7 +377,7 @@ void interpreter_execute_cat(Interpreter_Instance* instance, char** tokens, int 
 
     Interpreter_Value* dest_var = interpreter_get_variable(instance, dest_var_name);
     if (!dest_var || dest_var->type != TYPE_STRING) {
-        printf("Error: Destination variable '%s' is not a string.\n", dest_var_name);
+        printf("Error: Destination variable is not a string.\n");
         interpreter_halt();
         return;
     }
@@ -411,7 +411,7 @@ void interpreter_execute_cat(Interpreter_Instance* instance, char** tokens, int 
         const char* src_var_name = tokens[3];
         Interpreter_Value* src_var = interpreter_get_variable(instance, src_var_name);
         if (!src_var || src_var->type != TYPE_STRING) {
-            printf("Error: Source variable '%s' is not a string.\n", src_var_name);
+            printf("Error: Source variable is not a string.\n");
             interpreter_halt();
             return;
         }
@@ -427,7 +427,7 @@ void interpreter_execute_cat(Interpreter_Instance* instance, char** tokens, int 
         dest_var->string.size = dest_len + src_len;
     }
     else {
-        printf("Error: Unknown CAT mode '%s'.\n", mode);
+        printf("Error: Unknown CAT mode.\n");
         interpreter_halt();
         return;
     }
@@ -441,7 +441,7 @@ void interpreter_execute_clear(Interpreter_Instance* instance, char** tokens, in
 void interpreter_execute_declare(Interpreter_Instance* instance, char** tokens, int token_count)
 {
     if (token_count < 3) {
-        printf("Error: DECLARE instruction requires variable name and type (e.g., @ myVar int).\n");
+        printf("Error: DECLARE instruction requires variable name and type.\n");
         interpreter_halt();
         return;
     }
@@ -452,7 +452,7 @@ void interpreter_execute_declare(Interpreter_Instance* instance, char** tokens, 
     Interpreter_VarType var_type = interpreter_get_type(type_str);
 
     if (var_type == -1) {
-        printf("Error: Unknown variable type '%s' for variable '%s'.\n", type_str, var_name);
+        printf("Error: Unknown variable type for variable.\n");
         interpreter_halt();
         return;
     }
@@ -1206,7 +1206,7 @@ void interpreter_execute_sizeof(Interpreter_Instance* instance, char** tokens, i
 
     Interpreter_Value* src_val = interpreter_get_variable(instance, src_var_name);
     if (!src_val) {
-        printf("Error: Variable '%s' not found for SIZEOF.\n", src_var_name);
+        printf("Error: Variable not found for SIZEOF.\n");
         interpreter_halt();
         return;
     }
