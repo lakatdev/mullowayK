@@ -5,6 +5,41 @@
 #include <interface.h>
 #include <memory.h>
 
+// Usually provided by the standard library.
+
+typedef long long s64;
+typedef unsigned long long u64;
+
+s64 __divdi3(s64 num, s64 den)
+{
+    int neg = 0;
+    if (num < 0) { num = -num; neg = !neg; }
+    if (den < 0) { den = -den; neg = !neg; }
+    u64 unum = (u64)num, uden = (u64)den, q = 0;
+    while (unum >= uden) {
+        u64 tmp = uden, multiple = 1;
+        while ((tmp << 1) <= unum) { tmp <<= 1; multiple <<= 1; }
+        unum -= tmp; q += multiple;
+    }
+    return neg ? -(s64)q : (s64)q;
+}
+
+s64 __moddi3(s64 num, s64 den)
+{
+    int neg = 0;
+    if (num < 0) { num = -num; neg = 1; }
+    if (den < 0) { den = -den; }
+    u64 unum = (u64)num, uden = (u64)den;
+    while (unum >= uden) {
+        u64 tmp = uden;
+        while ((tmp << 1) <= unum) { tmp <<= 1; }
+        unum -= tmp;
+    }
+    return neg ? -(s64)unum : (s64)unum;
+}
+
+// End.
+
 void interpreter_execute_add(Interpreter_Instance* instance, char** tokens, int token_count)
 {
     if (token_count < 5) {
