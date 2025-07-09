@@ -22,4 +22,19 @@ void app_files_init()
         .name = "Refresh",
         .action = (void*)0
     });
+
+    add_app_menu_item((MenuItem) {
+        .name = "Edit",
+        .action = (void*)0
+    });
+
+    add_app_menu_item((MenuItem) {
+        .name = "Run",
+        .action = (void*)0
+    });
+
+    add_app_menu_item((MenuItem) {
+        .name = "Delete",
+        .action = (void*)0
+    });
 }

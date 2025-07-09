@@ -149,6 +149,33 @@ void render_character(unsigned char code, int x, int y, int size, unsigned char 
     draw_character(x, y, (unsigned char*)&data, r, g, b);
 }
 
+void draw_ntext(int x, int y, const char* text, int size, int n, unsigned char r, unsigned char g, unsigned char b)
+{
+    int dx = x;
+    for (int i = 0; i < n; i++) {
+        switch (text[i]) {
+            case (' '): {
+                x += size / 2;
+                break;
+            }
+            case ('\n'): {
+                x = dx;
+                y += size;
+                break;
+            }
+            case ('\t'): {
+                x += size * 2;
+                break;
+            }
+            default: {
+                render_character(convert_ascii[text[i]], x, y, size, r, g, b);
+                x += size / 2;
+                break;
+            }
+        }
+    }
+}
+
 void draw_text(int x, int y, const char* text, int size, unsigned char r, unsigned char g, unsigned char b)
 {
     int dx = x;
