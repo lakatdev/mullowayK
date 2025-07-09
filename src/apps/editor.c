@@ -49,9 +49,18 @@ void app_editor_draw()
             if (len > chars_x) {
                 len = chars_x;
             }
+            
+            if (i == app_editor_cursor_y) {
+                draw_rect(0, (i - app_editor_scroll) * 20, get_window_width(), 20, THEME_HIGHLIGHT_COLOR);
+            }
+            
             draw_ntext(10, 20 + (i - app_editor_scroll) * 20, line, 20, len, THEME_TEXT_COLOR);
         }
     }
+
+    draw_rect(0, get_window_height() - 20, get_window_width(), 20, THEME_HIGHLIGHT_COLOR);
+    draw_line(0, get_window_height() - 20, get_window_width(), get_window_height() - 20, 3, THEME_TEXT_COLOR);
+    draw_text(0, get_window_height() - 3, " up down line: XXXXX/XXXXX", 20, THEME_TEXT_COLOR);
 }
 
 void app_editor_key(char key)
@@ -59,9 +68,26 @@ void app_editor_key(char key)
     
 }
 
-void app_editor_mouse(int x, int y)
+void app_editor_up()
 {
 
+}
+
+void app_editor_down()
+{
+
+}
+
+void app_editor_mouse(int x, int y)
+{
+    if (y >= get_window_height() - 20) {
+        if (x < 40) {
+            app_editor_up();
+        }
+        else if (x >= 40 && x < 80) {
+            app_editor_down();
+        }
+    }
 }
 
 void app_editor_init()
@@ -79,5 +105,15 @@ void app_editor_init()
     add_app_menu_item((MenuItem) {
         .name = "New",
         .action = (void*)0
+    });
+
+    add_app_menu_item((MenuItem) {
+        .name = "Up",
+        .action = app_editor_up
+    });
+
+    add_app_menu_item((MenuItem) {
+        .name = "Down",
+        .action = app_editor_down
     });
 }
