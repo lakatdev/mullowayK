@@ -180,7 +180,9 @@ void mouse_click(int x, int y)
         if (application_count > 0) {
             if (x >= applications[selected_application].x && x < applications[selected_application].x + applications[selected_application].width &&
                 y >= applications[selected_application].y && y < applications[selected_application].y + applications[selected_application].height) {
+                system_set_clip_region(applications[selected_application].x, applications[selected_application].y, applications[selected_application].width, applications[selected_application].height);
                 applications[selected_application].mouse_click(x - applications[selected_application].x, y - applications[selected_application].y);
+                system_reset_clip_region();
                 invalidate();
                 return;
             }
