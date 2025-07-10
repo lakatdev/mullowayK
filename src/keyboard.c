@@ -1,4 +1,5 @@
 #include <desktop.h>
+#include <keyboard.h>
 
 unsigned char shift = 0;
 
@@ -67,9 +68,9 @@ void handle_keyboard(unsigned char scancode)
         case 0x2A: case 0x36: shift = 1; break;
         case 0xAA: case 0xB6: shift = 0; break;
 
-        case 0x48: put_key(' '); break; //TODO: valahogy kezelni a nyilakat es elkuldeni az appoknak stb
-        case 0x4B: put_key(' '); break;
-        case 0x4D: put_key(' '); break;
-        case 0x50: put_key(' '); break;
+        case 0x48: put_key(KEY_UP); break;
+        case 0x4B: put_key(KEY_LEFT); break;
+        case 0x4D: put_key(KEY_RIGHT); break;
+        case 0x50: put_key(KEY_DOWN); break;
     }
 }

@@ -15,5 +15,6 @@ char* strncpy(char* dest, const char* src, unsigned int n);
 int isspace(int c);
 long strtol(const char* nptr, char** endptr, int base);
 float strtof(const char* nptr, char** endptr);
+void* memmove(void* dest, const void* src, int n);
 
 #endif
