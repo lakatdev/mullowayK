@@ -16,6 +16,7 @@ objects = obj/loader.o \
 		obj/math.o \
 		obj/serial.o \
 		obj/userlib.o \
+		obj/ata.o \
 		obj/apps/runner.o \
 		obj/apps/editor.o \
 		obj/apps/files.o \
