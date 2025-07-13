@@ -17,6 +17,7 @@ objects = obj/loader.o \
 		obj/serial.o \
 		obj/userlib.o \
 		obj/ata.o \
+		obj/storage.o \
 		obj/apps/runner.o \
 		obj/apps/editor.o \
 		obj/apps/files.o \
@@ -50,7 +51,7 @@ build: linker.ld $(objects)
 	grub-mkrescue --output=mullowayk.iso iso
 	rm -rf iso
 run:
-	qemu-system-x86_64 -serial stdio -enable-kvm mullowayk.iso
+	qemu-system-x86_64 -serial stdio mullowayk.iso
 
 clean:
 	rm -rf obj build mullowayk.iso
