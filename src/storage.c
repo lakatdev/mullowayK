@@ -153,6 +153,34 @@ void delete_from_storage(const char* key)
     }
 }
 
+int get_record_key(unsigned int index, char* key_out)
+{
+    if (!storage_initialized) {
+        return 0;
+    }
+    unsigned int rec_count = get_record_count();
+    if (index >= rec_count) {
+        return 0;
+    }
+
+    unsigned int found = 0, slot = 0;
+    while (found <= index) {
+        unsigned int hdr_lba = first_lba + 1 + slot * (1 + MAX_DATA_LBAS);
+        StorageRecordHeader hdr;
+        ata_lba_read(hdr_lba, 1, (unsigned short*)&hdr);
+        if (hdr.valid) {
+            if (found == index) {
+                memcpy(key_out, hdr.key, STORAGE_KEY_SIZE);
+                key_out[STORAGE_KEY_SIZE - 1] = '\0';
+                return 1;
+            }
+            found++;
+        }
+        slot++;
+    }
+    return 0;
+}
+
 int files_exists(const char* key)
 {
     if (!storage_initialized) {
