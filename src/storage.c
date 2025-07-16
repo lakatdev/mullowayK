@@ -1,6 +1,8 @@
 #include <ata.h>
 #include <storage.h>
 #include <memory.h>
+#include <interrupts.h>
+#include <interface.h>
 
 #define MAX_DATA_LBAS ((STORAGE_RECORD_SIZE + 511) / 512)
 
@@ -12,7 +14,7 @@ void init_storage(unsigned int start_address)
     storage_initialized = 0;
     first_lba = start_address;
 
-    char magic_sector[512] = {0};
+    unsigned char magic_sector[512] = {0};
     ata_lba_read(first_lba, 1, (unsigned short*)magic_sector);
 
     if (magic_sector[0] == 'G' && magic_sector[1] == 'I' && magic_sector[2] == 'P' && magic_sector[3] == '!') {
@@ -23,7 +25,16 @@ void init_storage(unsigned int start_address)
         if (record_size == STORAGE_RECORD_SIZE && key_size == STORAGE_KEY_SIZE) {
             storage_initialized = 1;
         }
+
+        printf("ATA: ");
+        print_hex(record_count);
+        printf(" records in storage.\n");
     }
+}
+
+char is_storage_initialized()
+{
+    return storage_initialized;
 }
 
 int get_record_count()
@@ -52,22 +63,35 @@ void set_record_count(unsigned int count)
 
 void write_to_storage(const char* key, const char* data, unsigned int size)
 {
-    if (!storage_initialized || size > STORAGE_RECORD_SIZE)
-    {
+    if (!storage_initialized || size > STORAGE_RECORD_SIZE) {
         return;
     }
 
-    unsigned int records = get_record_count();
-    unsigned int slot = 0;
+    unsigned int rec_count = get_record_count();
+    unsigned int slot = rec_count;
+    int overwrite = 0;
 
-    while (1) {
-        unsigned int hdr_lba = first_lba + 1 + slot * (1 + MAX_DATA_LBAS);
+    int found_gap = 0;
+    for (unsigned int i = 0; i < rec_count; i++) {
+        unsigned int hdr_lba = first_lba + 1 + i * (1 + MAX_DATA_LBAS);
         StorageRecordHeader hdr;
         ata_lba_read(hdr_lba, 1, (unsigned short*)&hdr);
-        if (!hdr.valid) {
-            break;
+
+        if (hdr.valid) {
+            if (strcmp(hdr.key, key) == 0) {
+                overwrite = 1;
+                slot = i;
+                break;
+            }
         }
-        slot++;
+        else if (!found_gap) {
+            found_gap = 1;
+            slot = i;
+        }
+    }
+
+    if (!overwrite && slot == rec_count) {
+        set_record_count(rec_count + 1);
     }
 
     unsigned int hdr_lba = first_lba + 1 + slot * (1 + MAX_DATA_LBAS);
@@ -78,16 +102,12 @@ void write_to_storage(const char* key, const char* data, unsigned int size)
     ata_lba_write(hdr_lba, 1, (unsigned short*)&out);
 
     unsigned int sectors = (size + 511) / 512;
-    for (unsigned int i = 0; i < MAX_DATA_LBAS; i++) {
+    for (unsigned int s = 0; s < sectors; s++) {
         char buf[512] = {0};
-        if (i < sectors) {
-            unsigned int chunk = (i + 1 < sectors) ? 512 : (size - i * 512);
-            memcpy(buf, data + i * 512, chunk);
-        }
-        ata_lba_write(hdr_lba + 1 + i, 1, (unsigned short*)buf);
+        unsigned int chunk = (s + 1 < sectors) ? 512 : (size - s*512);
+        memcpy(buf, data + s*512, chunk);
+        ata_lba_write(hdr_lba + 1 + s, 1, (unsigned short*)buf);
     }
-
-    set_record_count(records + 1);
 }
 
 void read_from_storage(const char* key, char* buffer, unsigned int* size)
@@ -207,7 +227,7 @@ int files_exists(const char* key)
 
 void write_magic_number(unsigned int lba)
 {
-    char magic_sector[512] = {0};
+    unsigned char magic_sector[512] = {0};
 
     // magic number
     magic_sector[0] = 'G';

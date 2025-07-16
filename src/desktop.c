@@ -5,6 +5,7 @@
 #include <memory.h>
 #include <interface.h>
 #include <userlib.h>
+#include <storage.h>
 
 unsigned char mlogo_26[] = {
     0x00, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x80, 0x00,
@@ -314,6 +315,14 @@ void terminate_desktop()
     desktop_running = 0;
 }
 
+void format_disk()
+{
+    if (!is_storage_initialized()) {
+        write_magic_number(8192);
+        init_storage(8192);
+    }
+}
+
 #include <apps/info.h>
 #include <apps/files.h>
 #include <apps/editor.h>
@@ -366,6 +375,11 @@ void init_desktop()
     add_menu_item(&menus[0], (MenuItem) {
         .name = "Shutdown",
         .action = terminate_desktop
+    });
+    
+    add_menu_item(&menus[0], (MenuItem) {
+        .name = "Format disk",
+        .action = format_disk
     });
 
     add_menu((Menu) { .name = "Tools" });
