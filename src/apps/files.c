@@ -1,7 +1,6 @@
 #include <userlib.h>
 #include <storage.h>
 #include <memory.h>
-#include <interrupts.h>
 #include <interface.h>
 
 #define FILES_ON_PAGE 10
@@ -93,8 +92,6 @@ void app_files_prev()
     }
     app_files_read_files();
 }
-
-#include <ata.h>
 
 void app_files_init()
 {
