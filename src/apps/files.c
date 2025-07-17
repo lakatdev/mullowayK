@@ -65,7 +65,7 @@ void app_files_read_files()
     }
     for (int i = start_index; i < end_index; i++) {
         char key[STORAGE_KEY_SIZE];
-        if (get_record_key(i, key) == 0) {
+        if (get_record_key(i, key)) {
             strncpy(app_files_record_name_list[i - start_index], key, STORAGE_KEY_SIZE);
             app_files_record_name_list[i - start_index][STORAGE_KEY_SIZE - 1] = '\0';
         }
@@ -93,6 +93,12 @@ void app_files_prev()
     app_files_read_files();
 }
 
+void app_files_refresh()
+{
+    app_files_page = 0;
+    app_files_read_files();
+}
+
 void app_files_init()
 {
     app_files_page = 0;
@@ -102,7 +108,7 @@ void app_files_init()
 
     add_app_menu_item((MenuItem) {
         .name = "Refresh",
-        .action = (void*)0
+        .action = app_files_refresh
     });
 
     add_app_menu_item((MenuItem) {
