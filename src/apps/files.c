@@ -21,20 +21,30 @@ void app_files_draw()
         return;
     }
 
-    char page_info[] = "Page XXXX";
-    page_info[5] = '0' + (app_files_page / 1000) % 10;
-    page_info[6] = '0' + (app_files_page / 100) % 10;
-    page_info[7] = '0' + (app_files_page / 10) % 10;
-    page_info[8] = '0' + (app_files_page % 10);
-    draw_text(10, 25, page_info, 20, THEME_TEXT_COLOR);
+    int displayed_page = app_files_page + 1;
+    char page_info[] = "Page XXXX/XXXX";
+    page_info[5] = '0' + (displayed_page / 1000) % 10;
+    page_info[6] = '0' + (displayed_page / 100) % 10;
+    page_info[7] = '0' + (displayed_page / 10) % 10;
+    page_info[8] = '0' + (displayed_page % 10);
+
+    int total_pages = (app_files_record_count + FILES_ON_PAGE - 1) / FILES_ON_PAGE;
+    page_info[10] = '0' + (total_pages / 1000) % 10;
+    page_info[11] = '0' + (total_pages / 100) % 10;
+    page_info[12] = '0' + (total_pages / 10) % 10;
+    page_info[13] = '0' + (total_pages % 10);
+
+    draw_text(10, 25, page_info, 24, THEME_TEXT_COLOR);
 
     for (int i = 0; i < app_files_records_on_page; i++) {
-        int y = 30 + i * 20;
+        int y = 60 + i * 24;
         if (i == app_files_selected_record) {
-            draw_text(10, y, app_files_record_name_list[i], 20, THEME_TEXT_COLOR);
+            int length = strlen(app_files_record_name_list[i]);
+            draw_rect(10, y - 20, length * 12, 24, THEME_HIGHLIGHT_COLOR);
+            draw_text(10, y, app_files_record_name_list[i], 24, THEME_TEXT_COLOR);
         }
         else {
-            draw_text(10, y, app_files_record_name_list[i], 20, THEME_TEXT_COLOR);
+            draw_text(10, y, app_files_record_name_list[i], 24, THEME_TEXT_COLOR);
         }
     }
 }
@@ -46,7 +56,14 @@ void app_files_key(char key)
 
 void app_files_mouse(int x, int y)
 {
+    if (x < 10 || y < 40 || y > 40 + app_files_records_on_page * 24) {
+        return;
+    }
 
+    int index = (y - 40) / 24;
+    if (index >= 0 && index < app_files_records_on_page) {
+        app_files_selected_record = index;
+    }
 }
 
 void app_files_read_files()
@@ -99,6 +116,14 @@ void app_files_refresh()
     app_files_read_files();
 }
 
+void TEST_app_files_write_files()
+{
+    write_to_storage("image.bmp", "this is an image", 17);
+    write_to_storage("text.txt", "this is a text", 16);
+    write_to_storage("video.mp4", "this is a video", 16);
+    write_to_storage("program.k", "this is an application", 23);
+}
+
 void app_files_init()
 {
     app_files_page = 0;
@@ -109,6 +134,16 @@ void app_files_init()
     add_app_menu_item((MenuItem) {
         .name = "Refresh",
         .action = app_files_refresh
+    });
+
+    add_app_menu_item((MenuItem) {
+        .name = "Next",
+        .action = app_files_next
+    });
+
+    add_app_menu_item((MenuItem) {
+        .name = "Previous",
+        .action = app_files_prev
     });
 
     add_app_menu_item((MenuItem) {
@@ -124,5 +159,10 @@ void app_files_init()
     add_app_menu_item((MenuItem) {
         .name = "Delete",
         .action = (void*)0
+    });
+
+    add_app_menu_item((MenuItem) {
+        .name = "[TEST] Write",
+        .action = TEST_app_files_write_files
     });
 }

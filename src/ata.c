@@ -33,6 +33,10 @@ static int ata_wait(unsigned char mask_set, unsigned char mask_clear)
     return -1;
 }
 
+/**
+ * TODO: TIMES OUT AGAIN. SEE: FILES APP MENU
+ */
+
 void ata_lba_write(unsigned int lba, unsigned char sector_count, const unsigned short *data)
 {
     outb(0x1F6, 0xE0 | ((lba >> 24) & 0x0F));
