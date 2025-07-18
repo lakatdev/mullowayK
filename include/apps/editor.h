@@ -6,4 +6,7 @@ void app_editor_key(char key);
 void app_editor_mouse(int x, int y);
 void app_editor_init();
 
+char* app_editor_get_text_ptr();
+void app_editor_set_length(unsigned int length);
+
 #endif

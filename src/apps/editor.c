@@ -242,6 +242,21 @@ void app_editor_mouse(int x, int y)
     }
 }
 
+char* app_editor_get_text_ptr()
+{
+    return app_editor_buffer;
+}
+
+void app_editor_set_length(unsigned int length)
+{
+    if (length < sizeof(app_editor_buffer)) {
+        app_editor_buffer_size = length;
+    } else {
+        app_editor_buffer_size = sizeof(app_editor_buffer) - 1;
+    }
+    app_editor_buffer[app_editor_buffer_size] = '\0';
+}
+
 void app_editor_init()
 {
     add_app_menu_item((MenuItem) {
