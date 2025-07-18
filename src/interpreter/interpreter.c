@@ -4,8 +4,6 @@
 #include <interface.h>
 #include <memory.h>
 
-char interpreter_code_path[INTERPRETER_PATH_MAX];
-
 #define INT_MIN -2147483648
 #define INT_MAX 2147483647
 

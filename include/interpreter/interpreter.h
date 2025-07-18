@@ -24,6 +24,4 @@ int interpreter_ci_strcmp(const char* str1, const char* str2);
 int interpreter_compare(Interpreter_Value left, Interpreter_Value right, const char* op);
 int interpreter_find_matching_end(Interpreter_Instance* instance, int start_line);
 
-extern char interpreter_code_path[INTERPRETER_PATH_MAX];
-
 #endif

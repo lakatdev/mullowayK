@@ -133,6 +133,20 @@ void app_files_edit()
     unsigned int size = 0;
     read_from_storage(app_files_record_name_list[app_files_selected_record], app_editor_get_text_ptr(), &size);
     app_editor_set_length(size);
+    strncpy(app_editor_get_path_ptr(), app_files_record_name_list[app_files_selected_record], 256);
+}
+
+void app_files_delete()
+{
+    if (app_files_selected_record < 0 || app_files_selected_record >= app_files_records_on_page) {
+        return;
+    }
+    char key[STORAGE_KEY_SIZE];
+    strncpy(key, app_files_record_name_list[app_files_selected_record], STORAGE_KEY_SIZE);
+    key[STORAGE_KEY_SIZE - 1] = '\0';
+    
+    delete_from_storage(key);   
+    app_files_read_files();
 }
 
 void app_files_init()
@@ -169,7 +183,7 @@ void app_files_init()
 
     add_app_menu_item((MenuItem) {
         .name = "Delete",
-        .action = (void*)0
+        .action = app_files_delete
     });
 
     add_app_menu_item((MenuItem) {

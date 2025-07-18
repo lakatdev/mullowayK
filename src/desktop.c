@@ -328,6 +328,7 @@ void format_disk()
 #include <apps/editor.h>
 #include <apps/runner.h>
 #include <apps/thermal-printer.h>
+#include <apps/spawn.h>
 
 void init_desktop()
 {
@@ -369,6 +370,14 @@ void init_desktop()
         .key_press = app_thermal_printer_key,
         .draw = app_thermal_printer_draw,
         .name = "Thermal Printer"
+    });
+
+    add_application((Application) {
+        .init = app_spawn_init,
+        .mouse_click = app_spawn_mouse,
+        .key_press = app_spawn_key,
+        .draw = app_spawn_draw,
+        .name = "Spawn"
     });
 
     add_menu((Menu) { .name = "System" });

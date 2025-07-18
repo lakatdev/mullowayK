@@ -1,12 +1,21 @@
 #include <userlib.h>
 #include <memory.h>
 #include <keyboard.h>
+#include <storage.h>
+
+typedef enum {
+    EDITOR_FIELD_MAIN,
+    EDITOR_FIELD_PATH
+} Editor_SelectedField;
 
 char app_editor_buffer[32000000];
+char app_editor_path[256] = "Untitled";
 int app_editor_buffer_size = 0;
 int app_editor_cursor_x = 0;
 int app_editor_cursor_y = 0;
 int app_editor_scroll = 0;
+Editor_SelectedField app_editor_selected_field = EDITOR_FIELD_MAIN;
+
 
 int app_editor_line_count()
 {
@@ -51,39 +60,43 @@ void app_editor_draw()
                     int spaces = 4 - (visual_cols % 4);
                     if (visual_cols + spaces > chars_x) break;
                     visual_cols += spaces;
-                } else {
+                }
+                else {
                     if (visual_cols + 1 > chars_x) break;
                     visual_cols++;
                 }
                 len++;
                 if (visual_cols >= chars_x) break;
             }
-            if (i == app_editor_cursor_y) {
+            if (i == app_editor_cursor_y && app_editor_selected_field == EDITOR_FIELD_MAIN) {
                 draw_rect(0, (i - app_editor_scroll) * 20, get_window_width(), 20, THEME_HIGHLIGHT_COLOR);
             }
             draw_ntext(10, 15 + (i - app_editor_scroll) * 20, line, 20, len, THEME_TEXT_COLOR);
         }
     }
 
-    draw_rect(0, get_window_height() - 20, get_window_width(), 20, THEME_HIGHLIGHT_COLOR);
+    if (app_editor_selected_field == EDITOR_FIELD_PATH) {
+        draw_rect(0, get_window_height() - 20, get_window_width(), 20, THEME_HIGHLIGHT_COLOR);
+    }
     draw_line(0, get_window_height() - 20, get_window_width(), get_window_height() - 20, 3, THEME_TEXT_COLOR);
 
-    char toolbar[] = " up down line: XXXXX/XXXXX";
+    char toolbar[] = "line: XXXXX/XXXXX";
     int lines_count = app_editor_line_count();
     int line_number = app_editor_cursor_y + 1;
 
-    toolbar[15] = '0' + (line_number / 10000) % 10;
-    toolbar[16] = '0' + (line_number / 1000) % 10;
-    toolbar[17] = '0' + (line_number / 100) % 10;
-    toolbar[18] = '0' + (line_number / 10) % 10;
-    toolbar[19] = '0' + (line_number % 10);
-    toolbar[21] = '0' + (lines_count / 10000) % 10;
-    toolbar[22] = '0' + (lines_count / 1000) % 10;
-    toolbar[23] = '0' + (lines_count / 100) % 10;
-    toolbar[24] = '0' + (lines_count / 10) % 10;
-    toolbar[25] = '0' + (lines_count % 10);
+    toolbar[6] = '0' + (line_number / 10000) % 10;
+    toolbar[7] = '0' + (line_number / 1000) % 10;
+    toolbar[8] = '0' + (line_number / 100) % 10;
+    toolbar[9] = '0' + (line_number / 10) % 10;
+    toolbar[10] = '0' + (line_number % 10);
+    toolbar[12] = '0' + (lines_count / 10000) % 10;
+    toolbar[13] = '0' + (lines_count / 1000) % 10;
+    toolbar[14] = '0' + (lines_count / 100) % 10;
+    toolbar[15] = '0' + (lines_count / 10) % 10;
+    toolbar[16] = '0' + (lines_count % 10);
 
     draw_text(0, get_window_height() - 3, toolbar, 20, THEME_TEXT_COLOR);
+    draw_text(180, get_window_height() - 3, app_editor_path, 20, THEME_TEXT_COLOR);
 }
 
 void app_editor_up()
@@ -124,6 +137,33 @@ void app_editor_down()
 
 void app_editor_key(char key)
 {
+    if (app_editor_selected_field == EDITOR_FIELD_PATH) {
+        int length = strlen(app_editor_path);
+        switch (key) {
+            case '\b': {
+                if (length > 0) {
+                    app_editor_path[length - 1] = '\0';
+                }
+                break;
+            }
+            case '\n': {
+                app_editor_selected_field = EDITOR_FIELD_MAIN;
+                break;
+            }
+            default: {
+                if (key < 32 || key > 126) {
+                    return;
+                }
+                if (length < sizeof(app_editor_path) - 1) {
+                    app_editor_path[length++] = key;
+                    app_editor_path[length] = '\0';
+                }
+                break;
+            }
+        }
+        return;
+    }
+
     switch (key) {
         case KEY_LEFT: {
             break;
@@ -233,18 +273,20 @@ void app_editor_key(char key)
 void app_editor_mouse(int x, int y)
 {
     if (y >= get_window_height() - 20) {
-        if (x < 40) {
-            app_editor_up();
-        }
-        else if (x >= 40 && x < 80) {
-            app_editor_down();
-        }
+        app_editor_selected_field = EDITOR_FIELD_PATH;
+        return;
     }
+    app_editor_selected_field = EDITOR_FIELD_MAIN;
 }
 
 char* app_editor_get_text_ptr()
 {
     return app_editor_buffer;
+}
+
+char* app_editor_get_path_ptr()
+{
+    return app_editor_path;
 }
 
 void app_editor_set_length(unsigned int length)
@@ -257,11 +299,31 @@ void app_editor_set_length(unsigned int length)
     app_editor_buffer[app_editor_buffer_size] = '\0';
 }
 
+void app_editor_save()
+{
+    if (strlen(app_editor_path) <= 0) {
+        return;
+    }
+    write_to_storage(app_editor_path, app_editor_buffer, app_editor_buffer_size);
+}
+
+void app_editor_new()
+{
+    app_editor_buffer_size = 0;
+    app_editor_cursor_x = 0;
+    app_editor_cursor_y = 0;
+    app_editor_scroll = 0;
+    app_editor_selected_field = EDITOR_FIELD_MAIN;
+    strncpy(app_editor_path, "Untitled", sizeof(app_editor_path) - 1);
+}
+
 void app_editor_init()
 {
+    app_editor_selected_field = EDITOR_FIELD_MAIN;
+
     add_app_menu_item((MenuItem) {
         .name = "Save",
-        .action = (void*)0
+        .action = app_editor_save
     });
 
     add_app_menu_item((MenuItem) {
@@ -271,7 +333,7 @@ void app_editor_init()
 
     add_app_menu_item((MenuItem) {
         .name = "New",
-        .action = (void*)0
+        .action = app_editor_new
     });
 
     add_app_menu_item((MenuItem) {
