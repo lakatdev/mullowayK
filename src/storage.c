@@ -9,6 +9,9 @@
 unsigned int first_lba = 0;
 char storage_initialized = 0;
 
+/**
+ * TODO: This model wastes a lot of space, needs to be reworked.
+ */
 void init_storage(unsigned int start_address)
 {
     storage_initialized = 0;
