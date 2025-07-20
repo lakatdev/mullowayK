@@ -11,7 +11,6 @@ typedef enum {
 char app_editor_buffer[32000000];
 char app_editor_path[256] = "Untitled";
 int app_editor_buffer_size = 0;
-int app_editor_cursor_x = 0;
 int app_editor_cursor_y = 0;
 int app_editor_scroll = 0;
 Editor_SelectedField app_editor_selected_field = EDITOR_FIELD_MAIN;
@@ -44,6 +43,15 @@ char* app_editor_get_line(int n)
 
 void app_editor_draw()
 {
+    
+    int visible_lines = (get_window_height() / 20) - 1;
+    if (app_editor_cursor_y < app_editor_scroll) {
+        app_editor_scroll = app_editor_cursor_y;
+    }
+    else if (app_editor_cursor_y >= app_editor_scroll + visible_lines) {
+        app_editor_scroll = app_editor_cursor_y - visible_lines + 1;
+    }
+
     int chars_x = (get_window_width() - 10) / 10;
     int chars_y = (get_window_height() / 20) - 1;
     draw_screen(THEME_BACKGROUND_COLOR);
@@ -109,7 +117,6 @@ void app_editor_up()
                line[len] != '\n' && line[len] != '\0') {
             len++;
         }
-        app_editor_cursor_x = len;
         if (app_editor_cursor_y < app_editor_scroll) {
             app_editor_scroll--;
         }
@@ -128,12 +135,13 @@ void app_editor_down()
                line[len] != '\n' && line[len] != '\0') {
             len++;
         }
-        app_editor_cursor_x = len;
         if (app_editor_cursor_y >= app_editor_scroll + visible_lines) {
             app_editor_scroll++;
         }
     }
 }
+
+
 
 void app_editor_key(char key)
 {
@@ -196,7 +204,6 @@ void app_editor_key(char key)
             app_editor_buffer_size++;
 
             app_editor_cursor_y++;
-            app_editor_cursor_x = 0;
             break;
         }
         case '\b': {
@@ -232,7 +239,6 @@ void app_editor_key(char key)
                 while ((prev_line + len) < app_editor_buffer + app_editor_buffer_size && prev_line[len] != '\n') {
                     len++;
                 }
-                app_editor_cursor_x = len;
 
             }
             else {
@@ -240,9 +246,6 @@ void app_editor_key(char key)
                 memmove(app_editor_buffer + line_end - 1, app_editor_buffer + line_end, app_editor_buffer_size - line_end);
 
                 app_editor_buffer_size--;
-                if (app_editor_cursor_x > 0) {
-                    app_editor_cursor_x--;
-                }
             }
             break;
         }
@@ -264,7 +267,6 @@ void app_editor_key(char key)
             app_editor_buffer[offset] = key;
             app_editor_buffer_size++;
 
-            app_editor_cursor_x++;
             break;
         }
     }
@@ -297,6 +299,8 @@ void app_editor_set_length(unsigned int length)
         app_editor_buffer_size = sizeof(app_editor_buffer) - 1;
     }
     app_editor_buffer[app_editor_buffer_size] = '\0';
+    app_editor_cursor_y = 0;
+    app_editor_selected_field = EDITOR_FIELD_MAIN;
 }
 
 void app_editor_save()
@@ -310,7 +314,6 @@ void app_editor_save()
 void app_editor_new()
 {
     app_editor_buffer_size = 0;
-    app_editor_cursor_x = 0;
     app_editor_cursor_y = 0;
     app_editor_scroll = 0;
     app_editor_selected_field = EDITOR_FIELD_MAIN;

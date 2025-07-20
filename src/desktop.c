@@ -326,7 +326,7 @@ void format_disk()
 #include <apps/info.h>
 #include <apps/files.h>
 #include <apps/editor.h>
-#include <apps/runner.h>
+#include <apps/debug.h>
 #include <apps/thermal-printer.h>
 #include <apps/spawn.h>
 
@@ -357,11 +357,11 @@ void init_desktop()
     });
 
     add_application((Application) {
-        .init = app_runner_init,
-        .mouse_click = app_runner_mouse,
-        .key_press = app_runner_key,
-        .draw = app_runner_draw,
-        .name = "Runner"
+        .init = app_debug_init,
+        .mouse_click = app_debug_mouse,
+        .key_press = app_debug_key,
+        .draw = app_debug_draw,
+        .name = "Debug"
     });
 
     add_application((Application) {
