@@ -2,6 +2,7 @@
 #include <memory.h>
 #include <keyboard.h>
 #include <storage.h>
+#include <apps/spawn.h>
 
 typedef enum {
     EDITOR_FIELD_MAIN,
@@ -320,6 +321,18 @@ void app_editor_new()
     strncpy(app_editor_path, "Untitled", sizeof(app_editor_path) - 1);
 }
 
+void app_editor_run()
+{
+    if (app_editor_buffer_size <= 0) {
+        return;
+    }
+    if (app_editor_buffer_size >= sizeof(app_editor_buffer)) {
+        app_editor_buffer_size = sizeof(app_editor_buffer) - 1;
+    }
+    app_editor_buffer[app_editor_buffer_size] = '\0';
+    app_spawn_load_code(app_editor_buffer);
+}
+
 void app_editor_init()
 {
     app_editor_selected_field = EDITOR_FIELD_MAIN;
@@ -331,7 +344,7 @@ void app_editor_init()
 
     add_app_menu_item((MenuItem) {
         .name = "Run",
-        .action = (void*)0
+        .action = app_editor_run
     });
 
     add_app_menu_item((MenuItem) {

@@ -10,6 +10,7 @@ objects = obj/loader.o \
 		obj/graphics.o \
 		obj/fonts.mfp.o \
 		obj/interrupts.o \
+		obj/rtc.o \
 		obj/keyboard.o \
 		obj/mouse.o \
 		obj/desktop.o \
@@ -52,7 +53,7 @@ build: linker.ld $(objects)
 	grub-mkrescue --output=mullowayk.iso iso
 	rm -rf iso
 run:
-	qemu-system-x86_64 -serial stdio mullowayk.iso
+	qemu-system-x86_64 -m 2048 -serial stdio mullowayk.iso
 
 clean:
 	rm -rf obj build mullowayk.iso
