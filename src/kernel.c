@@ -108,12 +108,58 @@ unsigned char mlogo_60[1125] = {
 
 char boot_messages[80 * 25] = {0};
 int boot_messages_len = 0;
+int current_line = 0;
+int current_column = 0;
 
 void printf(const char* str)
 {
     for (int i = 0; str[i] != 0; i++) {
-        boot_messages[boot_messages_len] = str[i];
-        boot_messages_len++;
+        if (str[i] == '\n') {
+            current_line++;
+            current_column = 0;
+            
+            if (current_line >= 25) {
+                for (int line = 0; line < 24; line++) {
+                    for (int col = 0; col < 80; col++) {
+                        boot_messages[line * 80 + col] = boot_messages[(line + 1) * 80 + col];
+                    }
+                }
+                for (int col = 0; col < 80; col++) {
+                    boot_messages[24 * 80 + col] = 0;
+                }
+                current_line = 24;
+            }
+        }
+        else {
+            if (current_column < 80) {
+                boot_messages[current_line * 80 + current_column] = str[i];
+                current_column++;
+                
+                if (current_column >= 80) {
+                    current_line++;
+                    current_column = 0;
+                    
+                    if (current_line >= 25) {
+                        for (int line = 0; line < 24; line++) {
+                            for (int col = 0; col < 80; col++) {
+                                boot_messages[line * 80 + col] = boot_messages[(line + 1) * 80 + col];
+                            }
+                        }
+                        for (int col = 0; col < 80; col++) {
+                            boot_messages[24 * 80 + col] = 0;
+                        }
+                        current_line = 24;
+                    }
+                }
+            }
+        }
+    }
+    
+    boot_messages_len = 0;
+    for (int i = 0; i < 80 * 25; i++) {
+        if (boot_messages[i] != 0) {
+            boot_messages_len = i + 1;
+        }
     }
 }
 
