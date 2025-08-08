@@ -12,6 +12,8 @@ char app_spawn_load_hour = 0;
 char app_spawn_load_minute = 0;
 char app_spawn_load_second = 0;
 
+int app_spawn_error_code = 0;
+
 void app_spawn_draw()
 {
     draw_screen(THEME_BACKGROUND_COLOR);
@@ -31,10 +33,15 @@ void app_spawn_draw()
         template[24] = hex[app_spawn_load_minute & 0xF];
         template[26] = hex[(app_spawn_load_second >> 4) & 0xF];
         template[27] = hex[app_spawn_load_second & 0xF];
-        draw_text(10, 60, template, 20, THEME_TEXT_COLOR);
+        if (app_spawn_error_code == 0) {
+            draw_text(10, 24, template, 20, THEME_TEXT_COLOR);
+        }
+        else {
+            draw_text(10, 24, template, 20, 255, 0, 0);
+        }
     }
     else {
-        draw_text(10, 60, "No code loaded.", 20, THEME_TEXT_COLOR);
+        draw_text(10, 24, "No code loaded.", 20, THEME_TEXT_COLOR);
     }
 }
 
@@ -60,12 +67,18 @@ void app_spawn_load_code(const char* code)
 
 void app_spawn_execute()
 {
+    // clear buffer
+    app_spawn_error_code = 0;
+    
+
     if (!app_spawn_loaded) {
         printf("Spawn: No code loaded to execute.\n");
+        // say this in the UI
         return;
     }
     if (interpreter_execute(&app_spawn_main_instance) != 0) {
         printf("Spawn: Execution failed.\n");
+        app_spawn_error_code = 1;
         return;
     }
 }
@@ -77,6 +90,7 @@ void app_spawn_clear_code()
     app_spawn_main_instance.func_count = 0;
     app_spawn_main_instance.execution_position = 0;
     app_spawn_main_instance.stack_pointer = 0;
+    app_spawn_error_code = 0;
 }
 
 void app_spawn_send_io()
