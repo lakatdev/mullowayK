@@ -4,6 +4,7 @@
 #include <interrupts.h>
 #include <interface.h>
 #include <memory.h>
+#include <apps/spawn.h>
 
 // Usually provided by the standard library.
 
@@ -470,7 +471,7 @@ void interpreter_execute_cat(Interpreter_Instance* instance, char** tokens, int 
 
 void interpreter_execute_clear(Interpreter_Instance* instance, char** tokens, int token_count)
 {
-    
+    app_spawn_clear_buffer();
 }
 
 void interpreter_execute_declare(Interpreter_Instance* instance, char** tokens, int token_count)
@@ -1151,12 +1152,97 @@ void interpreter_execute_load(Interpreter_Instance* instance, char** tokens, int
 
 void interpreter_execute_print(Interpreter_Instance* instance, char** tokens, int token_count)
 {
-    
+    if (token_count < 2) {
+        printf("Error: PRINT instruction requires at least 2 tokens.\n");
+        interpreter_halt();
+        return;
+    }
+
+    const char* mode = tokens[1];
+
+    if (interpreter_ci_strcmp(mode, "string") == 0) {
+        if (token_count < 3) {
+            printf("Error: PRINT string requires a variable name.\n");
+            interpreter_halt();
+            return;
+        }
+        Interpreter_Value* val = interpreter_get_variable(instance, tokens[2]);
+        if (!val || val->type != TYPE_STRING) {
+            printf("Error: Variable is not a string.\n");
+            interpreter_halt();
+            return;
+        }
+        for (int i = 0; i < val->string.size; i++) {
+            app_spawn_print_char(val->string.data[i]);
+        }
+    }
+    else if (interpreter_ci_strcmp(mode, "const") == 0) {
+        char temp[INTERPRETER_MAX_ARRAY_SIZE];
+        for (int i = 2; i < token_count; ++i) {
+            interpreter_parse_const_escapes(tokens[i], temp, sizeof(temp));
+            for (int j = 0; temp[j] != '\0'; j++) {
+                app_spawn_print_char(temp[j]);
+            }
+            if (i < token_count - 1) {
+                app_spawn_print_char(' ');
+            }
+        }
+    }
+    else if (interpreter_ci_strcmp(mode, "$") == 0) {
+        if (token_count < 3) {
+            printf("Error: PRINT $ requires a variable or value.\n");
+            interpreter_halt();
+            return;
+        }
+        Interpreter_Value val = interpreter_get_value_of_token(instance, tokens[2]);
+        switch (val.type) {
+            case TYPE_INT: {
+                app_spawn_print_int(val.i);
+                break;
+            }
+            case TYPE_FLOAT: {
+                app_spawn_print_float(val.f);
+                break;
+            }
+            case TYPE_BYTE: {
+                app_spawn_print_int((int)val.b);
+                break;
+            }
+            default: {
+                printf("Error: Unsupported type for PRINT $.\n");
+                interpreter_halt();
+                return;
+            }
+        }
+    }
+    else if (interpreter_ci_strcmp(mode, "ascii") == 0) {
+        if (token_count < 3) {
+            printf("Error: PRINT ascii requires a variable or value.\n");
+            interpreter_halt();
+            return;
+        }
+        Interpreter_Value val = interpreter_get_value_of_token(instance, tokens[2]);
+        int ch = 0;
+        if (val.type == TYPE_INT) ch = val.i;
+        else if (val.type == TYPE_BYTE) ch = val.b;
+        else {
+            printf("Error: PRINT ascii requires int or byte.\n");
+            interpreter_halt();
+            return;
+        }
+        app_spawn_print_char(ch);
+    }
+    else {
+        printf("Error: Unknown PRINT mode.\n");
+        interpreter_halt();
+        return;
+    }
 }
 
 void interpreter_execute_println(Interpreter_Instance* instance, char** tokens, int token_count)
 {
-    
+    interpreter_execute_print(instance, tokens, token_count);
+    app_spawn_print_char('\n');
 }
 
 static unsigned int interpreter_rand_seed = 0;
