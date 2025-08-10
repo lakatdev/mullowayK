@@ -552,6 +552,9 @@ int interpreter_jump_to_function(Interpreter_Instance* instance, const char* fun
             instance->call_stack[instance->stack_pointer].local_var_count = 0;
             instance->call_stack[instance->stack_pointer].ref_count = 0;
 
+            int saved_execution_position = instance->execution_position;
+            instance->execution_position = i;
+            
             for (int j = 0; j < instance->functions[i].param_count; j++) {
                 if (!instance->functions[i].params[j].is_ref) {
                     interpreter_declare_variable(instance, 
@@ -559,6 +562,8 @@ int interpreter_jump_to_function(Interpreter_Instance* instance, const char* fun
                         instance->functions[i].params[j].type);
                 }
             }
+            
+            instance->execution_position = saved_execution_position;
 
             return instance->functions[i].start_line;
         }

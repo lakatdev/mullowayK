@@ -17,6 +17,7 @@ int app_runtime_error_code = 0;
 #define APP_SPAWN_WIDTH 80
 #define APP_SPAWN_HEIGHT 25
 
+char app_runtime_code[INTERPRETER_MAX_CODE] = {0};
 char app_runtime_video[APP_SPAWN_WIDTH * APP_SPAWN_HEIGHT] = {0};
 int app_runtime_cursor_x = 0;
 
@@ -193,14 +194,7 @@ void app_runtime_clear_buffer()
 void app_runtime_load_code(const char* code)
 {
     app_runtime_loaded = 0;
-    if (interpreter_load_code(&app_runtime_main_instance, code) != 0) {
-        printf("Spawn: Failed to load code.\n");
-        return;
-    }
-    if (interpreter_parse_functions(&app_runtime_main_instance) != 0) {
-        printf("Spawn: Failed to parse functions.\n");
-        return;
-    }
+    strcpy(app_runtime_code, code);
     app_runtime_loaded = 1;
     app_runtime_load_year = get_year();
     app_runtime_load_month = get_month();
@@ -210,33 +204,39 @@ void app_runtime_load_code(const char* code)
     app_runtime_load_second = get_second();
 }
 
+void app_runtime_clear_code()
+{
+    app_runtime_loaded = 0;
+    app_runtime_error_code = 0;
+    memset(app_runtime_video, 0, sizeof(app_runtime_video));
+    app_runtime_cursor_x = 0;
+}
+
 void app_runtime_execute()
 {
     app_runtime_error_code = 0;
     memset(app_runtime_video, 0, sizeof(app_runtime_video));
     app_runtime_cursor_x = 0;
-    
+
     if (!app_runtime_loaded) {
-        printf("Spawn: No code loaded to execute.\n");
+        printf("Runtime: No code loaded to execute.\n");
         return;
     }
-    if (interpreter_execute(&app_runtime_main_instance) != 0) {
-        printf("Spawn: Execution failed.\n");
+    interpreter_instance_init(&app_runtime_main_instance);
+    if (interpreter_load_code(&app_runtime_main_instance, app_runtime_code) != 0) {
+        printf("Runtime: Failed to load code.\n");
         app_runtime_error_code = 1;
         return;
     }
-}
-
-void app_runtime_clear_code()
-{
-    app_runtime_loaded = 0;
-    app_runtime_main_instance.parsed_line_count = 0;
-    app_runtime_main_instance.func_count = 0;
-    app_runtime_main_instance.execution_position = 0;
-    app_runtime_main_instance.stack_pointer = 0;
-    app_runtime_error_code = 0;
-    memset(app_runtime_video, 0, sizeof(app_runtime_video));
-    app_runtime_cursor_x = 0;
+    if (interpreter_parse_functions(&app_runtime_main_instance) != 0) {
+        printf("Runtime: Failed to parse functions.\n");
+        app_runtime_error_code = 1;
+        return;
+    }
+    if (interpreter_execute(&app_runtime_main_instance) != 0) {
+        printf("Runtime: Execution failed.\n");
+        app_runtime_error_code = 1;
+    }
 }
 
 void app_runtime_send_io()
