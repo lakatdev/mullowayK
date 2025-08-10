@@ -157,8 +157,6 @@ void app_files_run()
     }
     unsigned int size = 0;
     read_from_storage(app_files_record_name_list[app_files_selected_record], app_editor_get_text_ptr(), &size);
-    app_editor_set_length(size);
-    strncpy(app_editor_get_path_ptr(), app_files_record_name_list[app_files_selected_record], 256);
     app_runtime_load_code(app_editor_get_text_ptr());
 }
 
