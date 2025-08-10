@@ -368,7 +368,7 @@ void init_desktop()
         .mouse_click = app_runtime_mouse,
         .key_press = app_runtime_key,
         .draw = app_runtime_draw,
-        .name = "Keszeg Runtime"
+        .name = "Runtime"
     });
 
     add_menu((Menu) { .name = "System" });

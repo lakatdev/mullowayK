@@ -633,13 +633,13 @@ int interpreter_instruction_matches(const Interpreter_Instruction_Definition* de
 
 int interpreter_execute(Interpreter_Instance* instance)
 {
-    instance->execution_position = interpreter_call_function(instance, "main", (char**)0, 0);
-    
-    if (instance->execution_position == -1) {
+    int main_start = interpreter_jump_to_function(instance, "main");
+    if (main_start == -1) {
         printf("Error: No main function found\n");
         interpreter_halt();
         return 1;
     }
+    instance->execution_position = main_start;
 
     while (instance->execution_position < instance->parsed_line_count && instance->execution_position >= 0) {
         int token_count = instance->line_token_counts[instance->execution_position];
