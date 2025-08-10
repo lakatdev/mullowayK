@@ -237,6 +237,13 @@ void update_video()
     }
 }
 
+void force_draw()
+{
+    if (video_live) {
+        memcpy_sse(video, buffer, WIDTH * HEIGHT * 4);
+    }
+}
+
 void system_reset_clip_region()
 {
     clip_region_x = 0;

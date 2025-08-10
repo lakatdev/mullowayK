@@ -24,5 +24,6 @@ void invalidate_buffer();
 void system_reset_clip_region();
 void system_set_clip_region(int x, int y, int width, int height);
 void system_get_clip_region(int* x, int* y, int* width, int* height);
+void force_draw();
 
 #endif

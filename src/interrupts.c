@@ -5,12 +5,33 @@
 #include <mouse.h>
 #include <desktop.h>
 #include <keyboard.h>
+#include <exceptions.h>
 
 InterruptDescriptor idt[256];
 
 void init_idt()
 {
     printf("Initializing interrupt descriptor table\n");
+
+    extern int exception0();
+    extern int exception1();
+    extern int exception2();
+    extern int exception3();
+    extern int exception4();
+    extern int exception5();
+    extern int exception6();
+    extern int exception7();
+    extern int exception8();
+    extern int exception10();
+    extern int exception11();
+    extern int exception12();
+    extern int exception13();
+    extern int exception14();
+    extern int exception16();
+    extern int exception17();
+    extern int exception18();
+    extern int exception19();
+
     extern int load_idt();
     extern int irq0();
     extern int irq1();
@@ -28,6 +49,134 @@ void init_idt()
     extern int irq13();
     extern int irq14();
     extern int irq15();
+
+    unsigned int exception_address;
+
+    exception_address = (unsigned int)exception0;
+    idt[0].offset_lowerbits = exception_address & 0xffff;
+    idt[0].selector = 0x08;
+    idt[0].zero = 0;
+    idt[0].type_attr = 0x8e;
+    idt[0].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception1;
+    idt[1].offset_lowerbits = exception_address & 0xffff;
+    idt[1].selector = 0x08;
+    idt[1].zero = 0;
+    idt[1].type_attr = 0x8e;
+    idt[1].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception2;
+    idt[2].offset_lowerbits = exception_address & 0xffff;
+    idt[2].selector = 0x08;
+    idt[2].zero = 0;
+    idt[2].type_attr = 0x8e;
+    idt[2].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception3;
+    idt[3].offset_lowerbits = exception_address & 0xffff;
+    idt[3].selector = 0x08;
+    idt[3].zero = 0;
+    idt[3].type_attr = 0x8e;
+    idt[3].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception4;
+    idt[4].offset_lowerbits = exception_address & 0xffff;
+    idt[4].selector = 0x08;
+    idt[4].zero = 0;
+    idt[4].type_attr = 0x8e;
+    idt[4].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception5;
+    idt[5].offset_lowerbits = exception_address & 0xffff;
+    idt[5].selector = 0x08;
+    idt[5].zero = 0;
+    idt[5].type_attr = 0x8e;
+    idt[5].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception6;
+    idt[6].offset_lowerbits = exception_address & 0xffff;
+    idt[6].selector = 0x08;
+    idt[6].zero = 0;
+    idt[6].type_attr = 0x8e;
+    idt[6].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception7;
+    idt[7].offset_lowerbits = exception_address & 0xffff;
+    idt[7].selector = 0x08;
+    idt[7].zero = 0;
+    idt[7].type_attr = 0x8e;
+    idt[7].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception8;
+    idt[8].offset_lowerbits = exception_address & 0xffff;
+    idt[8].selector = 0x08;
+    idt[8].zero = 0;
+    idt[8].type_attr = 0x8e;
+    idt[8].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception10;
+    idt[10].offset_lowerbits = exception_address & 0xffff;
+    idt[10].selector = 0x08;
+    idt[10].zero = 0;
+    idt[10].type_attr = 0x8e;
+    idt[10].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception11;
+    idt[11].offset_lowerbits = exception_address & 0xffff;
+    idt[11].selector = 0x08;
+    idt[11].zero = 0;
+    idt[11].type_attr = 0x8e;
+    idt[11].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception12;
+    idt[12].offset_lowerbits = exception_address & 0xffff;
+    idt[12].selector = 0x08;
+    idt[12].zero = 0;
+    idt[12].type_attr = 0x8e;
+    idt[12].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception13;
+    idt[13].offset_lowerbits = exception_address & 0xffff;
+    idt[13].selector = 0x08;
+    idt[13].zero = 0;
+    idt[13].type_attr = 0x8e;
+    idt[13].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception14;
+    idt[14].offset_lowerbits = exception_address & 0xffff;
+    idt[14].selector = 0x08;
+    idt[14].zero = 0;
+    idt[14].type_attr = 0x8e;
+    idt[14].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception16;
+    idt[16].offset_lowerbits = exception_address & 0xffff;
+    idt[16].selector = 0x08;
+    idt[16].zero = 0;
+    idt[16].type_attr = 0x8e;
+    idt[16].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception17;
+    idt[17].offset_lowerbits = exception_address & 0xffff;
+    idt[17].selector = 0x08;
+    idt[17].zero = 0;
+    idt[17].type_attr = 0x8e;
+    idt[17].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception18;
+    idt[18].offset_lowerbits = exception_address & 0xffff;
+    idt[18].selector = 0x08;
+    idt[18].zero = 0;
+    idt[18].type_attr = 0x8e;
+    idt[18].offset_higherbits = (exception_address & 0xffff0000) >> 16;
+    
+    exception_address = (unsigned int)exception19;
+    idt[19].offset_lowerbits = exception_address & 0xffff;
+    idt[19].selector = 0x08;
+    idt[19].zero = 0;
+    idt[19].type_attr = 0x8e;
+    idt[19].offset_higherbits = (exception_address & 0xffff0000) >> 16;
 
     unsigned int irq0_address;
     unsigned int irq1_address;

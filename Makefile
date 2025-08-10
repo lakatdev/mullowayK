@@ -19,6 +19,7 @@ objects = obj/loader.o \
 		obj/userlib.o \
 		obj/ata.o \
 		obj/storage.o \
+		obj/exceptions.o \
 		obj/apps/debug.o \
 		obj/apps/editor.o \
 		obj/apps/files.o \
