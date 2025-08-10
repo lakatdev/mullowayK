@@ -2,7 +2,7 @@
 #include <memory.h>
 #include <keyboard.h>
 #include <storage.h>
-#include <apps/spawn.h>
+#include <apps/runtime.h>
 
 typedef enum {
     EDITOR_FIELD_MAIN,
@@ -330,7 +330,7 @@ void app_editor_run()
         app_editor_buffer_size = sizeof(app_editor_buffer) - 1;
     }
     app_editor_buffer[app_editor_buffer_size] = '\0';
-    app_spawn_load_code(app_editor_buffer);
+    app_runtime_load_code(app_editor_buffer);
 }
 
 void app_editor_init()

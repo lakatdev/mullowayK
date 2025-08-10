@@ -4,7 +4,7 @@
 #include <interrupts.h>
 #include <interface.h>
 #include <memory.h>
-#include <apps/spawn.h>
+#include <apps/runtime.h>
 
 // Usually provided by the standard library.
 
@@ -471,7 +471,7 @@ void interpreter_execute_cat(Interpreter_Instance* instance, char** tokens, int 
 
 void interpreter_execute_clear(Interpreter_Instance* instance, char** tokens, int token_count)
 {
-    app_spawn_clear_buffer();
+    app_runtime_clear_buffer();
 }
 
 void interpreter_execute_declare(Interpreter_Instance* instance, char** tokens, int token_count)
@@ -1173,7 +1173,7 @@ void interpreter_execute_print(Interpreter_Instance* instance, char** tokens, in
             return;
         }
         for (int i = 0; i < val->string.size; i++) {
-            app_spawn_print_char(val->string.data[i]);
+            app_runtime_print_char(val->string.data[i]);
         }
     }
     else if (interpreter_ci_strcmp(mode, "const") == 0) {
@@ -1181,10 +1181,10 @@ void interpreter_execute_print(Interpreter_Instance* instance, char** tokens, in
         for (int i = 2; i < token_count; ++i) {
             interpreter_parse_const_escapes(tokens[i], temp, sizeof(temp));
             for (int j = 0; temp[j] != '\0'; j++) {
-                app_spawn_print_char(temp[j]);
+                app_runtime_print_char(temp[j]);
             }
             if (i < token_count - 1) {
-                app_spawn_print_char(' ');
+                app_runtime_print_char(' ');
             }
         }
     }
@@ -1197,15 +1197,15 @@ void interpreter_execute_print(Interpreter_Instance* instance, char** tokens, in
         Interpreter_Value val = interpreter_get_value_of_token(instance, tokens[2]);
         switch (val.type) {
             case TYPE_INT: {
-                app_spawn_print_int(val.i);
+                app_runtime_print_int(val.i);
                 break;
             }
             case TYPE_FLOAT: {
-                app_spawn_print_float(val.f);
+                app_runtime_print_float(val.f);
                 break;
             }
             case TYPE_BYTE: {
-                app_spawn_print_int((int)val.b);
+                app_runtime_print_int((int)val.b);
                 break;
             }
             default: {
@@ -1230,7 +1230,7 @@ void interpreter_execute_print(Interpreter_Instance* instance, char** tokens, in
             interpreter_halt();
             return;
         }
-        app_spawn_print_char(ch);
+        app_runtime_print_char(ch);
     }
     else {
         printf("Error: Unknown PRINT mode.\n");
@@ -1242,7 +1242,7 @@ void interpreter_execute_print(Interpreter_Instance* instance, char** tokens, in
 void interpreter_execute_println(Interpreter_Instance* instance, char** tokens, int token_count)
 {
     interpreter_execute_print(instance, tokens, token_count);
-    app_spawn_print_char('\n');
+    app_runtime_print_char('\n');
 }
 
 static unsigned int interpreter_rand_seed = 0;

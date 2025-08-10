@@ -327,8 +327,7 @@ void format_disk()
 #include <apps/files.h>
 #include <apps/editor.h>
 #include <apps/debug.h>
-#include <apps/thermal-printer.h>
-#include <apps/spawn.h>
+#include <apps/runtime.h>
 
 void init_desktop()
 {
@@ -365,19 +364,11 @@ void init_desktop()
     });
 
     add_application((Application) {
-        .init = app_thermal_printer_init,
-        .mouse_click = app_thermal_printer_mouse,
-        .key_press = app_thermal_printer_key,
-        .draw = app_thermal_printer_draw,
-        .name = "Thermal Printer"
-    });
-
-    add_application((Application) {
-        .init = app_spawn_init,
-        .mouse_click = app_spawn_mouse,
-        .key_press = app_spawn_key,
-        .draw = app_spawn_draw,
-        .name = "Spawn"
+        .init = app_runtime_init,
+        .mouse_click = app_runtime_mouse,
+        .key_press = app_runtime_key,
+        .draw = app_runtime_draw,
+        .name = "Keszeg Runtime"
     });
 
     add_menu((Menu) { .name = "System" });

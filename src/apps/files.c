@@ -3,6 +3,7 @@
 #include <memory.h>
 #include <interface.h>
 #include <apps/editor.h>
+#include <apps/runtime.h>
 
 #define FILES_ON_PAGE 10
 
@@ -149,6 +150,18 @@ void app_files_delete()
     app_files_read_files();
 }
 
+void app_files_run()
+{
+    if (app_files_selected_record < 0 || app_files_selected_record >= app_files_records_on_page) {
+        return;
+    }
+    unsigned int size = 0;
+    read_from_storage(app_files_record_name_list[app_files_selected_record], app_editor_get_text_ptr(), &size);
+    app_editor_set_length(size);
+    strncpy(app_editor_get_path_ptr(), app_files_record_name_list[app_files_selected_record], 256);
+    app_runtime_load_code(app_editor_get_text_ptr());
+}
+
 void app_files_init()
 {
     app_files_page = 0;
@@ -178,7 +191,7 @@ void app_files_init()
 
     add_app_menu_item((MenuItem) {
         .name = "Run",
-        .action = (void*)0
+        .action = app_files_run
     });
 
     add_app_menu_item((MenuItem) {
