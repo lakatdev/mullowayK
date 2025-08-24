@@ -1,3 +1,7 @@
+CC = x86_64-linux-gnu-gcc
+AS = x86_64-linux-gnu-as
+LD = x86_64-linux-gnu-ld
+
 GPPPARAMS = -m32 -Iinclude -nostdlib -fno-builtin -fno-exceptions -fno-leading-underscore -Wno-write-strings
 ASPARAMS = --32
 LDPARAMS = -melf_i386 -z noexecstack
@@ -31,14 +35,14 @@ objects = obj/loader.o \
 
 obj/%.o: src/%.c
 	mkdir -p $(@D)
-	gcc $(GPPPARAMS) -c -o $@ $<
+	$(CC) $(GPPPARAMS) -c -o $@ $<
 
 obj/%.o: src/%.s
 	mkdir -p $(@D)
-	as $(ASPARAMS) -o $@ $<
+	$(AS) $(ASPARAMS) -o $@ $<
 
 build: linker.ld $(objects)
-	ld $(LDPARAMS) -T $< -o $@ $(objects)
+	$(LD) $(LDPARAMS) -T $< -o $@ $(objects)
 	mkdir iso
 	mkdir iso/boot
 	mkdir iso/boot/grub

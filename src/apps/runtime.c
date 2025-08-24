@@ -2,6 +2,7 @@
 #include <interpreter/interpreter.h>
 #include <rtc.h>
 #include <interface.h>
+#include <desktop.h>
 #include <memory.h>
 
 Interpreter_Instance app_runtime_main_instance;
@@ -14,6 +15,8 @@ char app_runtime_load_minute = 0;
 char app_runtime_load_second = 0;
 
 int app_runtime_error_code = 0;
+int app_runtime_execution_requested = 0;
+int app_runtime_executing = 0;
 #define APP_SPAWN_WIDTH 80
 #define APP_SPAWN_HEIGHT 25
 
@@ -58,6 +61,7 @@ void app_runtime_print_char(char c)
             break;
         }
     }
+    invalidate();
 }
 
 void app_runtime_print(const char* str)
@@ -65,6 +69,7 @@ void app_runtime_print(const char* str)
     for (int i = 0; str[i] != '\0'; i++) {
         app_runtime_print_char(str[i]);
     }
+    invalidate();
 }
 
 void app_runtime_print_int(int value)
@@ -95,6 +100,7 @@ void app_runtime_print_int(int value)
     for (int j = i - 1; j >= 0; j--) {
         app_runtime_print_char(buffer[j]);
     }
+    invalidate();
 }
 
 void app_runtime_print_float(float value)
@@ -133,6 +139,7 @@ void app_runtime_print_float(float value)
             break;
         }
     }
+    invalidate();
 }
 
 void app_runtime_draw()
@@ -208,6 +215,8 @@ void app_runtime_clear_code()
 {
     app_runtime_loaded = 0;
     app_runtime_error_code = 0;
+    app_runtime_execution_requested = 0;
+    app_runtime_executing = 0;
     memset(app_runtime_video, 0, sizeof(app_runtime_video));
     app_runtime_cursor_x = 0;
 }
@@ -226,16 +235,67 @@ void app_runtime_execute()
     if (interpreter_load_code(&app_runtime_main_instance, app_runtime_code) != 0) {
         printf("Runtime: Failed to load code.\n");
         app_runtime_error_code = 1;
+        app_runtime_executing = 0;
         return;
     }
     if (interpreter_parse_functions(&app_runtime_main_instance) != 0) {
         printf("Runtime: Failed to parse functions.\n");
         app_runtime_error_code = 1;
+        app_runtime_executing = 0;
         return;
     }
-    if (interpreter_execute(&app_runtime_main_instance) != 0) {
+    
+    int result = interpreter_execute(&app_runtime_main_instance);
+    if (result == 0) {
+        app_runtime_executing = 0;
+    }
+    else if (result < 0) {
         printf("Runtime: Execution failed.\n");
         app_runtime_error_code = 1;
+        app_runtime_executing = 0;
+    }
+}
+
+void app_runtime_continue_execution()
+{
+    if (app_runtime_executing && app_runtime_main_instance.is_running) {
+        int result = interpreter_execute_chunk(&app_runtime_main_instance, 32);
+        if (result == 0) {
+            app_runtime_executing = 0;
+        }
+        else if (result < 0) {
+            printf("Runtime: Execution failed.\n");
+            app_runtime_error_code = 1;
+            app_runtime_executing = 0;
+        }
+    }
+}
+
+void app_runtime_request_execute()
+{
+    if (!app_runtime_executing) {
+        app_runtime_execution_requested = 1;
+    }
+}
+
+void app_runtime_stop_execute()
+{
+    app_runtime_execution_requested = 0;
+    if (app_runtime_executing && app_runtime_main_instance.is_running) {
+        interpreter_stop(&app_runtime_main_instance);
+    }
+    app_runtime_executing = 0;
+}
+
+void app_runtime_process_deferred()
+{
+    if (app_runtime_execution_requested && !app_runtime_executing) {
+        app_runtime_execution_requested = 0;
+        app_runtime_executing = 1;
+        app_runtime_execute();
+    }
+    else if (app_runtime_executing) {
+        app_runtime_continue_execution();
     }
 }
 
@@ -257,8 +317,8 @@ void app_runtime_mouse(int x, int y)
 void app_runtime_init()
 {
     add_app_menu_item((MenuItem) {
-        .name = "Run/Stop",
-        .action = app_runtime_execute
+        .name = "Run",
+        .action = app_runtime_request_execute
     });
 
     add_app_menu_item((MenuItem) {
@@ -271,6 +331,12 @@ void app_runtime_init()
         .action = app_runtime_send_io
     });
 
+    add_app_menu_item((MenuItem) {
+        .name = "Stop",
+        .action = app_runtime_stop_execute
+    });
+
+    app_runtime_stop_execute();
     memset(app_runtime_video, 0, sizeof(app_runtime_video));
     app_runtime_cursor_x = 0;
 }

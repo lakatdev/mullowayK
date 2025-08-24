@@ -19,6 +19,9 @@ void interpreter_instance_init(Interpreter_Instance* instance)
     instance->parsed_line_count = 0;
     instance->stack_pointer = -1;
     instance->execution_position = 0;
+    instance->is_running = 0;
+    instance->should_stop = 0;
+    instance->instruction_count = 0;
 }
 
 char interpreter_lowercase(char ch)
@@ -638,15 +641,33 @@ int interpreter_instruction_matches(const Interpreter_Instruction_Definition* de
 
 int interpreter_execute(Interpreter_Instance* instance)
 {
-    instance->execution_position = interpreter_call_function(instance, "main", (char**)0, 0);
-    
-    if (instance->execution_position == -1) {
-        printf("Error: No main function found\n");
-        interpreter_halt();
-        return 1;
+    if (!instance->is_running) {
+        instance->execution_position = interpreter_call_function(instance, "main", (char**)0, 0);
+        
+        if (instance->execution_position == -1) {
+            printf("Error: No main function found\n");
+            interpreter_halt();
+            return 1;
+        }
+        instance->is_running = 1;
+        instance->should_stop = 0;
+        instance->instruction_count = 0;
     }
 
-    while (instance->execution_position < instance->parsed_line_count && instance->execution_position >= 0) {
+    return interpreter_execute_chunk(instance, 32);
+}
+
+int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructions)
+{
+    int instructions_executed = 0;
+    
+    printf("execute chuck ");
+
+    while (instance->execution_position < instance->parsed_line_count && 
+           instance->execution_position >= 0 && 
+           !instance->should_stop &&
+           instructions_executed < max_instructions) {
+        
         int token_count = instance->line_token_counts[instance->execution_position];
         
         char* current_line_tokens[INTERPRETER_MAX_TOKENS_PER_LINE]; 
@@ -665,11 +686,13 @@ int interpreter_execute(Interpreter_Instance* instance)
             if (instance->stack_pointer <= 0) {
                 instance->stack_pointer = -1;
                 instance->execution_position = -1;
+                instance->is_running = 0;
             }
             else {
                 instance->execution_position = instance->call_stack[instance->stack_pointer].return_address;
                 instance->stack_pointer--;
             }
+            instructions_executed++;
             continue; 
         }
 
@@ -694,8 +717,22 @@ int interpreter_execute(Interpreter_Instance* instance)
         if (!instruction_was_handled_and_jumped) {
             instance->execution_position++;
         }
+        
+        instructions_executed++;
+        instance->instruction_count++;
     }
-    return 0;
+    
+    if (instance->execution_position < 0 || instance->execution_position >= instance->parsed_line_count || instance->should_stop) {
+        instance->is_running = 0;
+        return 0;
+    }
+    
+    return 1;
+}
+
+void interpreter_stop(Interpreter_Instance* instance)
+{
+    instance->should_stop = 1;
 }
 
 int interpreter_find_matching_end(Interpreter_Instance* instance, int start_line)

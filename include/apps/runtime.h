@@ -12,5 +12,6 @@ void app_runtime_print_char(char c);
 void app_runtime_print_int(int value);
 void app_runtime_print_float(float value);
 void app_runtime_clear_buffer();
+void app_runtime_process_deferred();
 
 #endif

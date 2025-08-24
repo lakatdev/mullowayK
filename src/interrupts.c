@@ -6,6 +6,7 @@
 #include <desktop.h>
 #include <keyboard.h>
 #include <exceptions.h>
+#include <apps/runtime.h>
 
 InterruptDescriptor idt[256];
 
@@ -355,6 +356,10 @@ void irq0_handler(void)
 
     if ((unsigned int)uptime % 15 == 0) {
         update_video();
+    }
+
+    if ((unsigned int)uptime % 5 == 0) {
+        app_runtime_process_deferred();
     }
 
     if (timer_ticks > 0) {

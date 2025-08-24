@@ -24,6 +24,9 @@ typedef struct {
     Interpreter_CallFrame call_stack[INTERPRETER_MAX_STACK];
     int stack_pointer;
     int execution_position;
+    int is_running;
+    int should_stop;
+    int instruction_count;
 } Interpreter_Instance;
 
 #endif
