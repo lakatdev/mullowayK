@@ -406,6 +406,8 @@ void app_runtime_send_io()
             current->input_buffer[sizeof(current->input_buffer) - 1] = '\0';
             current->input_ready = 1;
             
+            app_runtime_print(app_runtime_input_buffer);
+            app_runtime_print_char('\n');
             app_runtime_input_requested = 0;
             app_runtime_input_buffer[0] = '\0';
             app_runtime_input_buffer_length = 0;
