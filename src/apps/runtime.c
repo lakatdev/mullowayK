@@ -167,7 +167,12 @@ void app_runtime_draw()
 {
     draw_screen(THEME_BACKGROUND_COLOR);
 
-    if (app_runtime_loaded) {
+    if (app_runtime_input_requested) {
+        draw_rect(0, 6, get_window_width(), 22, THEME_HIGHLIGHT_COLOR);
+        draw_text(10, 22, "Input: ", 20, THEME_TEXT_COLOR);
+        draw_text(70, 22, app_runtime_input_buffer, 20, THEME_TEXT_COLOR);
+    }
+    else if (app_runtime_loaded) {
         char template[] = "Loaded at: XX-XX-XX XX:XX:XX";
         char hex[] = "0123456789ABCDEF";
         template[11] = hex[(app_runtime_load_year >> 4) & 0xF];
@@ -210,14 +215,6 @@ void app_runtime_draw()
                 }
             }
         }
-    }
-    
-    if (app_runtime_input_requested) {
-        int input_y = get_window_height() - 30;
-        draw_rect(0, input_y, get_window_width(), 20, THEME_HIGHLIGHT_COLOR);
-        draw_text(10, input_y + 15, "Input: ", 20, THEME_TEXT_COLOR);
-        draw_text(70, input_y + 15, app_runtime_input_buffer, 20, THEME_TEXT_COLOR);
-        draw_text(70 + strlen(app_runtime_input_buffer) * 10, input_y + 15, "_", 20, THEME_TEXT_COLOR);
     }
 }
 
