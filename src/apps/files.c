@@ -9,7 +9,7 @@
 
 extern char storage_initialized;
 
-char app_files_record_name_list[STORAGE_KEY_SIZE][FILES_ON_PAGE];
+char app_files_record_name_list[FILES_ON_PAGE][STORAGE_KEY_SIZE];
 int app_files_page = 0;
 int app_files_record_count = 0;
 int app_files_selected_record = -1;
