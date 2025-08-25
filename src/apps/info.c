@@ -3,7 +3,7 @@
 void app_info_draw()
 {
     draw_screen(THEME_BACKGROUND_COLOR);
-    draw_text(10, 30, "MullowayK build 2025-07-16", 24, THEME_TEXT_COLOR);
+    draw_text(10, 30, "MullowayK build 2025-08-25", 24, THEME_TEXT_COLOR);
     draw_text(10, 54, "Using Keszeg 4 interpreter.", 24, THEME_TEXT_COLOR);
 }
 
