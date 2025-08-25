@@ -4,7 +4,7 @@
 #define THEME_BACKGROUND_COLOR 249, 249, 224
 #define THEME_ACCENT_COLOR 255, 208, 208
 #define THEME_TEXT_COLOR 0, 0, 0
-#define THEME_HIGHLIGHT_COLOR 58, 166, 185
+#define THEME_HIGHLIGHT_COLOR 91, 206, 250
 
 typedef struct {
     char name[32];
