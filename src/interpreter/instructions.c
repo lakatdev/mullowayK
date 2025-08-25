@@ -1263,62 +1263,43 @@ void interpreter_execute_save(Interpreter_Instance* instance, char** tokens, int
         return;
     }
 
-    static char save_buffer[STORAGE_RECORD_SIZE];
     unsigned int buffer_pos = 0;
 
     if (interpreter_ci_strcmp(type, "iarray") == 0 && var->type == TYPE_IARRAY) {
-        if (buffer_pos + sizeof(int) > STORAGE_RECORD_SIZE) {
-            printf("Error: SAVE: Data too large for storage.\n");
+        unsigned int required_size = sizeof(int) + var->iarray.size * sizeof(int);
+        if (required_size > STORAGE_RECORD_SIZE) {
+            printf("Error: SAVE: Data too large.\n");
             interpreter_halt();
             return;
         }
-        memcpy(save_buffer + buffer_pos, &var->iarray.size, sizeof(int));
+        memcpy(interpreter_public_buffer + buffer_pos, &var->iarray.size, sizeof(int));
         buffer_pos += sizeof(int);
-        
-        unsigned int data_size = var->iarray.size * sizeof(int);
-        if (buffer_pos + data_size > STORAGE_RECORD_SIZE) {
-            printf("Error: SAVE: Data too large for storage.\n");
-            interpreter_halt();
-            return;
-        }
-        memcpy(save_buffer + buffer_pos, var->iarray.data, data_size);
-        buffer_pos += data_size;
+        memcpy(interpreter_public_buffer + buffer_pos, var->iarray.data, var->iarray.size * sizeof(int));
+        buffer_pos += var->iarray.size * sizeof(int);
     }
     else if (interpreter_ci_strcmp(type, "farray") == 0 && var->type == TYPE_FARRAY) {
-        if (buffer_pos + sizeof(int) > STORAGE_RECORD_SIZE) {
-            printf("Error: SAVE: Data too large for storage.\n");
+        unsigned int required_size = sizeof(int) + var->farray.size * sizeof(float);
+        if (required_size > STORAGE_RECORD_SIZE) {
+            printf("Error: SAVE: Data too large.\n");
             interpreter_halt();
             return;
         }
-        memcpy(save_buffer + buffer_pos, &var->farray.size, sizeof(int));
+        memcpy(interpreter_public_buffer + buffer_pos, &var->farray.size, sizeof(int));
         buffer_pos += sizeof(int);
-        
-        unsigned int data_size = var->farray.size * sizeof(float);
-        if (buffer_pos + data_size > STORAGE_RECORD_SIZE) {
-            printf("Error: SAVE: Data too large for storage.\n");
-            interpreter_halt();
-            return;
-        }
-        memcpy(save_buffer + buffer_pos, var->farray.data, data_size);
-        buffer_pos += data_size;
+        memcpy(interpreter_public_buffer + buffer_pos, var->farray.data, var->farray.size * sizeof(float));
+        buffer_pos += var->farray.size * sizeof(float);
     }
     else if (interpreter_ci_strcmp(type, "string") == 0 && var->type == TYPE_STRING) {
-        if (buffer_pos + sizeof(int) > STORAGE_RECORD_SIZE) {
-            printf("Error: SAVE: Data too large for storage.\n");
+        unsigned int required_size = sizeof(int) + var->string.size * sizeof(unsigned char);
+        if (required_size > STORAGE_RECORD_SIZE) {
+            printf("Error: SAVE: Data too large.\n");
             interpreter_halt();
             return;
         }
-        memcpy(save_buffer + buffer_pos, &var->string.size, sizeof(int));
+        memcpy(interpreter_public_buffer + buffer_pos, &var->string.size, sizeof(int));
         buffer_pos += sizeof(int);
-        
-        unsigned int data_size = var->string.size * sizeof(unsigned char);
-        if (buffer_pos + data_size > STORAGE_RECORD_SIZE) {
-            printf("Error: SAVE: Data too large for storage.\n");
-            interpreter_halt();
-            return;
-        }
-        memcpy(save_buffer + buffer_pos, var->string.data, data_size);
-        buffer_pos += data_size;
+        memcpy(interpreter_public_buffer + buffer_pos, var->string.data, var->string.size * sizeof(unsigned char));
+        buffer_pos += var->string.size * sizeof(unsigned char);
     }
     else {
         printf("Error: SAVE: Type mismatch or unsupported type.\n");
@@ -1326,7 +1307,7 @@ void interpreter_execute_save(Interpreter_Instance* instance, char** tokens, int
         return;
     }
 
-    write_to_storage(path, save_buffer, buffer_pos);
+    write_to_storage(path, interpreter_public_buffer, buffer_pos);
 }
 
 void interpreter_execute_load(Interpreter_Instance* instance, char** tokens, int token_count)
@@ -1354,9 +1335,8 @@ void interpreter_execute_load(Interpreter_Instance* instance, char** tokens, int
         return;
     }
 
-    static char load_buffer[STORAGE_RECORD_SIZE];
     unsigned int buffer_size = 0;
-    read_from_storage(path, load_buffer, &buffer_size);
+    read_from_storage(path, interpreter_public_buffer, &buffer_size);
 
     if (buffer_size == 0) {
         printf("Error: File is empty or could not be read.\n");
@@ -1364,88 +1344,51 @@ void interpreter_execute_load(Interpreter_Instance* instance, char** tokens, int
         return;
     }
 
-    unsigned int buffer_pos = 0;
-    int size = 0;
+    if (buffer_size < sizeof(int)) {
+        printf("Error: LOAD: Invalid file format.\n");
+        interpreter_halt();
+        return;
+    }
+
+    int size;
+    memcpy(&size, interpreter_public_buffer, sizeof(int));
+    
+    if (size < 0 || size > INTERPRETER_MAX_ARRAY_SIZE) {
+        printf("Error: LOAD: Invalid array size in file.\n");
+        interpreter_halt();
+        return;
+    }
+
+    unsigned int buffer_pos = sizeof(int);
 
     if (interpreter_ci_strcmp(type, "iarray") == 0 && var->type == TYPE_IARRAY) {
-        if (buffer_pos + sizeof(int) > buffer_size) {
-            printf("Error: LOAD: Invalid file format.\n");
-            interpreter_halt();
-            return;
-        }
-        memcpy(&size, load_buffer + buffer_pos, sizeof(int));
-        buffer_pos += sizeof(int);
-        
-        if (size > INTERPRETER_MAX_ARRAY_SIZE) {
-            size = INTERPRETER_MAX_ARRAY_SIZE;
-        }
-        if (size < 0) {
-            printf("Error: LOAD: Invalid array size in file.\n");
-            interpreter_halt();
-            return;
-        }
-        
         unsigned int data_size = size * sizeof(int);
         if (buffer_pos + data_size > buffer_size) {
-            printf("Error: LOAD: Invalid file format or truncated data.\n");
+            printf("Error: LOAD: File truncated or invalid.\n");
             interpreter_halt();
             return;
         }
-        memcpy(var->iarray.data, load_buffer + buffer_pos, data_size);
+        memcpy(var->iarray.data, interpreter_public_buffer + buffer_pos, data_size);
         var->iarray.size = size;
     }
     else if (interpreter_ci_strcmp(type, "farray") == 0 && var->type == TYPE_FARRAY) {
-        if (buffer_pos + sizeof(int) > buffer_size) {
-            printf("Error: LOAD: Invalid file format.\n");
-            interpreter_halt();
-            return;
-        }
-        memcpy(&size, load_buffer + buffer_pos, sizeof(int));
-        buffer_pos += sizeof(int);
-        
-        if (size > INTERPRETER_MAX_ARRAY_SIZE) {
-            size = INTERPRETER_MAX_ARRAY_SIZE;
-        }
-        if (size < 0) {
-            printf("Error: LOAD: Invalid array size in file.\n");
-            interpreter_halt();
-            return;
-        }
-        
         unsigned int data_size = size * sizeof(float);
         if (buffer_pos + data_size > buffer_size) {
-            printf("Error: LOAD: Invalid file format or truncated data.\n");
+            printf("Error: LOAD: File truncated or invalid.\n");
             interpreter_halt();
             return;
         }
-        memcpy(var->farray.data, load_buffer + buffer_pos, data_size);
+        memcpy(var->farray.data, interpreter_public_buffer + buffer_pos, data_size);
         var->farray.size = size;
     }
     else if (interpreter_ci_strcmp(type, "string") == 0 && var->type == TYPE_STRING) {
-        if (buffer_pos + sizeof(int) > buffer_size) {
-            printf("Error: LOAD: Invalid file format.\n");
-            interpreter_halt();
-            return;
-        }
-        memcpy(&size, load_buffer + buffer_pos, sizeof(int));
-        buffer_pos += sizeof(int);
-    
-        if (size > INTERPRETER_MAX_ARRAY_SIZE) {
-            size = INTERPRETER_MAX_ARRAY_SIZE;
-        }
-        if (size < 0) {
-            printf("Error: LOAD: Invalid string size in file.\n");
-            interpreter_halt();
-            return;
-        }
-        
         unsigned int data_size = size * sizeof(unsigned char);
         if (buffer_pos + data_size > buffer_size) {
-            printf("Error: LOAD: Invalid file format or truncated data.\n");
+            printf("Error: LOAD: File truncated or invalid.\n");
             interpreter_halt();
             return;
         }
-        memcpy(var->string.data, load_buffer + buffer_pos, data_size);
+        memcpy(var->string.data, interpreter_public_buffer + buffer_pos, data_size);
         var->string.size = size;
     }
     else {

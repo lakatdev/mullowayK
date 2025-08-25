@@ -4,6 +4,8 @@
 #include <interpreter/instance.h>
 #include <interpreter/config.h>
 
+extern char interpreter_public_buffer[];
+
 void interpreter_instance_init(Interpreter_Instance* instance);
 int interpreter_load_code(Interpreter_Instance* instance, const char* code);
 int interpreter_execute(Interpreter_Instance* instance);

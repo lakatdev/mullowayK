@@ -3,10 +3,13 @@
 #include <interpreter/instance.h>
 #include <interface.h>
 #include <memory.h>
+#include <storage.h>
 #include <interrupts.h>
 
 #define INT_MIN -2147483648
 #define INT_MAX 2147483647
+
+char interpreter_public_buffer[STORAGE_RECORD_SIZE];
 
 void interpreter_halt()
 {

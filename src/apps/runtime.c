@@ -354,24 +354,23 @@ int app_runtime_push_instance_from_file(const char* filename)
         return -1;
     }
     
-    static char file_content[INTERPRETER_MAX_CODE];
     unsigned int file_size = 0;
     
-    read_from_storage(filename, file_content, &file_size);
+    read_from_storage(filename, interpreter_public_buffer, &file_size);
     
     if (file_size == 0) {
         printf("Error: EXEC: File is empty.\n");
         return -1;
     }
     
-    file_content[file_size] = '\0';
+    interpreter_public_buffer[file_size] = '\0';
     
     app_runtime_instance_stack_top++;
     Interpreter_Instance* new_instance = &app_runtime_instances[app_runtime_instance_stack_top];
     
     interpreter_instance_init(new_instance);
     
-    if (interpreter_load_code(new_instance, file_content) != 0) {
+    if (interpreter_load_code(new_instance, interpreter_public_buffer) != 0) {
         printf("Error: EXEC: Failed to load code.\n");
         app_runtime_instance_stack_top--;
         return -1;
