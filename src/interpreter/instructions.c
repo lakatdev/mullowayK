@@ -1370,14 +1370,19 @@ void interpreter_execute_sleep(Interpreter_Instance* instance, char** tokens, in
         interpreter_halt();
         return;
     }
-    int s = (ms_val.type == TYPE_INT) ? ms_val.i : ms_val.b;
+    int ms = (ms_val.type == TYPE_INT) ? ms_val.i : ms_val.b;
 
-    if (s < 0) {
+    if (ms < 0) {
         printf("Error: SLEEP time must be non-negative.\n");
         interpreter_halt();
         return;
     }
-    sleep(s);
+    
+    if (ms > 0) {
+        unsigned long long int ticks_to_sleep = (unsigned long long int)ms;
+        instance->sleep_until_tick = system_uptime() + ticks_to_sleep;
+        instance->is_sleeping = 1;
+    }
 }
 
 Interpreter_Instruction_AttributeMatcher declare_matchers[] = { {"@", 0} };

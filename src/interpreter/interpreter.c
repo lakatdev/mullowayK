@@ -3,6 +3,7 @@
 #include <interpreter/instance.h>
 #include <interface.h>
 #include <memory.h>
+#include <interrupts.h>
 
 #define INT_MIN -2147483648
 #define INT_MAX 2147483647
@@ -22,6 +23,8 @@ void interpreter_instance_init(Interpreter_Instance* instance)
     instance->is_running = 0;
     instance->should_stop = 0;
     instance->instruction_count = 0;
+    instance->is_sleeping = 0;
+    instance->sleep_until_tick = 0;
 }
 
 char interpreter_lowercase(char ch)
@@ -659,10 +662,20 @@ int interpreter_execute(Interpreter_Instance* instance)
 
 int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructions)
 {
+    if (instance->is_sleeping) {
+        if (system_uptime() >= instance->sleep_until_tick) {
+            instance->is_sleeping = 0;
+        }
+        else {
+            return 1;
+        }
+    }
+
     int instructions_executed = 0;
     while (instance->execution_position < instance->parsed_line_count && 
            instance->execution_position >= 0 && 
            !instance->should_stop &&
+           !instance->is_sleeping &&
            instructions_executed < max_instructions) {
         
         int token_count = instance->line_token_counts[instance->execution_position];
@@ -730,6 +743,7 @@ int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructio
 void interpreter_stop(Interpreter_Instance* instance)
 {
     instance->should_stop = 1;
+    instance->is_sleeping = 0;
 }
 
 int interpreter_find_matching_end(Interpreter_Instance* instance, int start_line)

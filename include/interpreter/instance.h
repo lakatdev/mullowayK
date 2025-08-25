@@ -27,6 +27,8 @@ typedef struct {
     int is_running;
     int should_stop;
     int instruction_count;
+    int is_sleeping;
+    unsigned long long int sleep_until_tick;
 } Interpreter_Instance;
 
 #endif
