@@ -314,6 +314,11 @@ void app_runtime_mouse(int x, int y)
 
 }
 
+void app_runtime_on_close()
+{
+    app_runtime_stop_execute();
+}
+
 void app_runtime_init()
 {
     add_app_menu_item((MenuItem) {

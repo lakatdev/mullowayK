@@ -12,6 +12,11 @@ void app_info_key(char key)
 
 }
 
+void app_info_on_close()
+{
+
+}
+
 void app_info_mouse(int x, int y)
 {
 

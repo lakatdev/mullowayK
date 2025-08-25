@@ -38,6 +38,7 @@ typedef struct {
     void (*key_press)(char key);
     void (*draw)();
     void (*init)();
+    void (*on_close)();
     char name[32];
     int x;
     int y;
@@ -189,6 +190,7 @@ void mouse_click(int x, int y)
             }
             else if (x >= applications[selected_application].x && x < applications[selected_application].x + 30 &&
                 y >= applications[selected_application].y - 30 && y < applications[selected_application].y) {
+                applications[selected_application].on_close();
                 applications[selected_application].visible = 0;
                 selected_application = -1;
                 memset(menus[2].name, 0, 32);
@@ -336,6 +338,7 @@ void init_desktop()
         .mouse_click = app_info_mouse,
         .key_press = app_info_key,
         .draw = app_info_draw,
+        .on_close = app_info_on_close,
         .name = "Info"
     });
 
@@ -344,6 +347,7 @@ void init_desktop()
         .mouse_click = app_files_mouse,
         .key_press = app_files_key,
         .draw = app_files_draw,
+        .on_close = app_files_on_close,
         .name = "Files"
     });
 
@@ -352,6 +356,7 @@ void init_desktop()
         .mouse_click = app_editor_mouse,
         .key_press = app_editor_key,
         .draw = app_editor_draw,
+        .on_close = app_editor_on_close,
         .name = "Editor"
     });
 
@@ -360,6 +365,7 @@ void init_desktop()
         .mouse_click = app_debug_mouse,
         .key_press = app_debug_key,
         .draw = app_debug_draw,
+        .on_close = app_debug_on_close,
         .name = "Debug"
     });
 
@@ -368,6 +374,7 @@ void init_desktop()
         .mouse_click = app_runtime_mouse,
         .key_press = app_runtime_key,
         .draw = app_runtime_draw,
+        .on_close = app_runtime_on_close,
         .name = "Runtime"
     });
 

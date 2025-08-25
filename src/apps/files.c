@@ -160,6 +160,11 @@ void app_files_run()
     app_runtime_load_code(app_editor_get_text_ptr());
 }
 
+void app_files_on_close()
+{
+
+}
+
 void app_files_init()
 {
     app_files_page = 0;

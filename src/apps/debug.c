@@ -38,6 +38,11 @@ void app_debug_print_boot_messages()
 
 }
 
+void app_debug_on_close()
+{
+
+}
+
 void app_debug_init()
 {
 

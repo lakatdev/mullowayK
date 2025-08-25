@@ -660,9 +660,6 @@ int interpreter_execute(Interpreter_Instance* instance)
 int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructions)
 {
     int instructions_executed = 0;
-    
-    printf("execute chuck ");
-
     while (instance->execution_position < instance->parsed_line_count && 
            instance->execution_position >= 0 && 
            !instance->should_stop &&

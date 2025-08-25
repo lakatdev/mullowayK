@@ -312,6 +312,11 @@ void app_editor_save()
     write_to_storage(app_editor_path, app_editor_buffer, app_editor_buffer_size);
 }
 
+void app_editor_on_close()
+{
+    
+}
+
 void app_editor_new()
 {
     app_editor_buffer_size = 0;
