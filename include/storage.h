@@ -2,7 +2,7 @@
 #define STORAGE_H
 
 #define STORAGE_KEY_SIZE 256
-#define STORAGE_RECORD_SIZE 32000000
+#define STORAGE_RECORD_SIZE 16000000
 
 typedef struct {
     char key[STORAGE_KEY_SIZE];

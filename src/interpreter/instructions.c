@@ -1067,7 +1067,53 @@ void interpreter_execute_mod_assign(Interpreter_Instance* instance, char** token
 
 void interpreter_execute_exec(Interpreter_Instance* instance, char** tokens, int token_count)
 {
-    
+    if (token_count < 3) {
+        printf("Error: EXEC requires a mode and argument.\n");
+        interpreter_halt();
+        return;
+    }
+
+    const char* mode = tokens[1];
+
+    if (interpreter_ci_strcmp(mode, "const") == 0) {
+        char command[1024] = {0};
+        unsigned long long int pos = 0;
+        for (int i = 2; i < token_count; ++i) {
+            unsigned long long int len = strlen(tokens[i]);
+            if (pos + len + 2 >= sizeof(command)) break;
+            memcpy(command + pos, tokens[i], len);
+            pos += len;
+            if (i < token_count - 1) command[pos++] = ' ';
+        }
+        command[pos] = '\0';
+        
+        if (app_runtime_push_instance_from_file(command) != 0) {
+            printf("Error: EXEC: Failed to execute file.\n");
+            interpreter_halt();
+            return;
+        }
+    }
+    else if (interpreter_ci_strcmp(mode, "string") == 0) {
+        Interpreter_Value* str_var = interpreter_get_variable(instance, tokens[2]);
+        if (!str_var || str_var->type != TYPE_STRING) {
+            printf("Error: EXEC string: variable not found or not a string.\n");
+            interpreter_halt();
+            return;
+        }
+        char command[INTERPRETER_MAX_ARRAY_SIZE + 1] = {0};
+        memcpy(command, str_var->string.data, str_var->string.size);
+        command[str_var->string.size] = '\0';
+        
+        if (app_runtime_push_instance_from_file(command) != 0) {
+            printf("Error: EXEC: Failed to execute file.\n");
+            interpreter_halt();
+            return;
+        }
+    }
+    else {
+        printf("Error: Unknown EXEC mode.\n");
+        interpreter_halt();
+    }
 }
 
 void interpreter_execute_if(Interpreter_Instance* instance, char** tokens, int token_count)

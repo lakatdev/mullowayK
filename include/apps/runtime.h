@@ -14,5 +14,6 @@ void app_runtime_print_int(int value);
 void app_runtime_print_float(float value);
 void app_runtime_clear_buffer();
 void app_runtime_process_deferred();
+int app_runtime_push_instance_from_file(const char* filename);
 
 #endif

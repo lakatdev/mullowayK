@@ -1,11 +1,14 @@
 #include <userlib.h>
 #include <interpreter/interpreter.h>
 #include <rtc.h>
+#include <storage.h>
 #include <interface.h>
 #include <desktop.h>
 #include <memory.h>
 
-Interpreter_Instance app_runtime_main_instance;
+Interpreter_Instance app_runtime_instances[INTERPRETER_MAX_INSTANCES];
+int app_runtime_instance_stack_top = -1;
+
 int app_runtime_loaded = 0;
 char app_runtime_load_year = 0;
 char app_runtime_load_month = 0;
@@ -17,19 +20,27 @@ char app_runtime_load_second = 0;
 int app_runtime_error_code = 0;
 int app_runtime_execution_requested = 0;
 int app_runtime_executing = 0;
-#define APP_SPAWN_WIDTH 80
-#define APP_SPAWN_HEIGHT 25
+#define APP_RUNTIME_WIDTH 80
+#define APP_RUNTIME_HEIGHT 25
 
 char app_runtime_code[INTERPRETER_MAX_CODE] = {0};
-char app_runtime_video[APP_SPAWN_WIDTH * APP_SPAWN_HEIGHT] = {0};
+char app_runtime_video[APP_RUNTIME_WIDTH * APP_RUNTIME_HEIGHT] = {0};
 int app_runtime_cursor_x = 0;
+
+Interpreter_Instance* app_runtime_get_current_instance()
+{
+    if (app_runtime_instance_stack_top >= 0) {
+        return &app_runtime_instances[app_runtime_instance_stack_top];
+    }
+    return (void*)0;
+}
 
 void app_runtime_scroll_video()
 {
-    for (int i = 0; i < (APP_SPAWN_HEIGHT - 1) * APP_SPAWN_WIDTH; i++) {
-        app_runtime_video[i] = app_runtime_video[i + APP_SPAWN_WIDTH];
+    for (int i = 0; i < (APP_RUNTIME_HEIGHT - 1) * APP_RUNTIME_WIDTH; i++) {
+        app_runtime_video[i] = app_runtime_video[i + APP_RUNTIME_WIDTH];
     }
-    for (int i = (APP_SPAWN_HEIGHT - 1) * APP_SPAWN_WIDTH; i < APP_SPAWN_HEIGHT * APP_SPAWN_WIDTH; i++) {
+    for (int i = (APP_RUNTIME_HEIGHT - 1) * APP_RUNTIME_WIDTH; i < APP_RUNTIME_HEIGHT * APP_RUNTIME_WIDTH; i++) {
         app_runtime_video[i] = 0;
     }
 }
@@ -48,14 +59,14 @@ void app_runtime_print_char(char c)
         }
         default: {
             if (c >= 32 && c <= 126) { 
-                if (app_runtime_cursor_x < APP_SPAWN_WIDTH) {
-                    app_runtime_video[(APP_SPAWN_HEIGHT - 1) * APP_SPAWN_WIDTH + app_runtime_cursor_x] = c;
+                if (app_runtime_cursor_x < APP_RUNTIME_WIDTH) {
+                    app_runtime_video[(APP_RUNTIME_HEIGHT - 1) * APP_RUNTIME_WIDTH + app_runtime_cursor_x] = c;
                     app_runtime_cursor_x++;
                 }
                 else {
                     app_runtime_cursor_x = 0;
                     app_runtime_scroll_video();
-                    app_runtime_video[(APP_SPAWN_HEIGHT - 1) * APP_SPAWN_WIDTH + app_runtime_cursor_x] = c;
+                    app_runtime_video[(APP_RUNTIME_HEIGHT - 1) * APP_RUNTIME_WIDTH + app_runtime_cursor_x] = c;
                 }
             }
             break;
@@ -178,12 +189,12 @@ void app_runtime_draw()
     int visible_width = (get_window_width() - 20) / 10;
     int visible_height = (get_window_height() - 48) / 24 + 1;
 
-    for (int y = 0; y < visible_height && y < APP_SPAWN_HEIGHT; y++) {
-        int buffer_row = APP_SPAWN_HEIGHT - visible_height + y;
+    for (int y = 0; y < visible_height && y < APP_RUNTIME_HEIGHT; y++) {
+        int buffer_row = APP_RUNTIME_HEIGHT - visible_height + y;
         if (buffer_row >= 0) {
-            for (int x = 0; x < visible_width && x < APP_SPAWN_WIDTH; x++) {
+            for (int x = 0; x < visible_width && x < APP_RUNTIME_WIDTH; x++) {
                 char c[2] = {0};
-                c[0] = app_runtime_video[buffer_row * APP_SPAWN_WIDTH + x];
+                c[0] = app_runtime_video[buffer_row * APP_RUNTIME_WIDTH + x];
                 if (c[0] != 0) {
                     draw_text(10 + x * 10, 48 + y * 24, c, 20, THEME_TEXT_COLOR);
                 }
@@ -231,44 +242,67 @@ void app_runtime_execute()
         printf("Runtime: No code loaded to execute.\n");
         return;
     }
-    interpreter_instance_init(&app_runtime_main_instance);
-    if (interpreter_load_code(&app_runtime_main_instance, app_runtime_code) != 0) {
+    
+    app_runtime_instance_stack_top = 0;
+    interpreter_instance_init(&app_runtime_instances[0]);
+    
+    if (interpreter_load_code(&app_runtime_instances[0], app_runtime_code) != 0) {
         printf("Runtime: Failed to load code.\n");
         app_runtime_error_code = 1;
         app_runtime_executing = 0;
+        app_runtime_instance_stack_top = -1;
         return;
     }
-    if (interpreter_parse_functions(&app_runtime_main_instance) != 0) {
+    if (interpreter_parse_functions(&app_runtime_instances[0]) != 0) {
         printf("Runtime: Failed to parse functions.\n");
         app_runtime_error_code = 1;
         app_runtime_executing = 0;
+        app_runtime_instance_stack_top = -1;
         return;
     }
     
-    int result = interpreter_execute(&app_runtime_main_instance);
+    int result = interpreter_execute(&app_runtime_instances[0]);
     if (result == 0) {
         app_runtime_executing = 0;
+        app_runtime_instance_stack_top = -1;
     }
     else if (result < 0) {
         printf("Runtime: Execution failed.\n");
         app_runtime_error_code = 1;
         app_runtime_executing = 0;
+        app_runtime_instance_stack_top = -1;
     }
 }
 
 void app_runtime_continue_execution()
 {
-    if (app_runtime_executing && app_runtime_main_instance.is_running) {
-        int result = interpreter_execute_chunk(&app_runtime_main_instance, 32);
+    Interpreter_Instance* current = app_runtime_get_current_instance();
+    if (app_runtime_executing && current && current->is_running) {
+        int result = interpreter_execute_chunk(current, 32);
         if (result == 0) {
-            app_runtime_executing = 0;
+            app_runtime_instance_stack_top--;
+            if (app_runtime_instance_stack_top < 0) {
+                app_runtime_executing = 0;
+            }
         }
         else if (result < 0) {
             printf("Runtime: Execution failed.\n");
             app_runtime_error_code = 1;
             app_runtime_executing = 0;
+            app_runtime_instance_stack_top = -1;
         }
     }
+}
+
+void app_runtime_stop_execute()
+{
+    app_runtime_execution_requested = 0;
+    Interpreter_Instance* current = app_runtime_get_current_instance();
+    if (app_runtime_executing && current && current->is_running) {
+        interpreter_stop(current);
+    }
+    app_runtime_executing = 0;
+    app_runtime_instance_stack_top = -1;
 }
 
 void app_runtime_request_execute()
@@ -276,15 +310,6 @@ void app_runtime_request_execute()
     if (!app_runtime_executing) {
         app_runtime_execution_requested = 1;
     }
-}
-
-void app_runtime_stop_execute()
-{
-    app_runtime_execution_requested = 0;
-    if (app_runtime_executing && app_runtime_main_instance.is_running) {
-        interpreter_stop(&app_runtime_main_instance);
-    }
-    app_runtime_executing = 0;
 }
 
 void app_runtime_process_deferred()
@@ -297,6 +322,61 @@ void app_runtime_process_deferred()
     else if (app_runtime_executing) {
         app_runtime_continue_execution();
     }
+}
+
+int app_runtime_push_instance_from_file(const char* filename)
+{
+    if (app_runtime_instance_stack_top >= INTERPRETER_MAX_INSTANCES - 1) {
+        printf("Error: EXEC: Maximum instance depth reached.\n");
+        return -1;
+    }
+    
+    if (!files_exists(filename)) {
+        printf("Error: EXEC: File not found.\n");
+        return -1;
+    }
+    
+    static char file_content[INTERPRETER_MAX_CODE];
+    unsigned int file_size = 0;
+    
+    read_from_storage(filename, file_content, &file_size);
+    
+    if (file_size == 0) {
+        printf("Error: EXEC: File is empty.\n");
+        return -1;
+    }
+    
+    file_content[file_size] = '\0';
+    
+    app_runtime_instance_stack_top++;
+    Interpreter_Instance* new_instance = &app_runtime_instances[app_runtime_instance_stack_top];
+    
+    interpreter_instance_init(new_instance);
+    
+    if (interpreter_load_code(new_instance, file_content) != 0) {
+        printf("Error: EXEC: Failed to load code.\n");
+        app_runtime_instance_stack_top--;
+        return -1;
+    }
+    
+    if (interpreter_parse_functions(new_instance) != 0) {
+        printf("Error: EXEC: Failed to parse functions.\n");
+        app_runtime_instance_stack_top--;
+        return -1;
+    }
+    
+    int result = interpreter_execute(new_instance);
+    if (result < 0) {
+        printf("Error: EXEC: Execution failed.\n");
+        app_runtime_instance_stack_top--;
+        return -1;
+    }
+    
+    if (result == 0) {
+        app_runtime_instance_stack_top--;
+    }
+    
+    return 0;
 }
 
 void app_runtime_send_io()
