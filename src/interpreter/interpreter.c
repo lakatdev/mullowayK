@@ -25,6 +25,11 @@ void interpreter_instance_init(Interpreter_Instance* instance)
     instance->instruction_count = 0;
     instance->is_sleeping = 0;
     instance->sleep_until_tick = 0;
+    instance->waiting_for_input = 0;
+    instance->input_variable_name = (void*)0;
+    instance->input_buffer[0] = '\0';
+    instance->input_ready = 0;
+    instance->input_mode = INPUT_MODE_NONE;
 }
 
 char interpreter_lowercase(char ch)
@@ -671,11 +676,60 @@ int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructio
         }
     }
 
+    if (instance->waiting_for_input) {
+        if (instance->input_ready) {
+            Interpreter_Value input_value;
+            memset(&input_value, 0, sizeof(Interpreter_Value));
+            
+            if (instance->input_mode == INPUT_MODE_NUMERIC) {
+                char* endptr = (void*)0;
+                float val = strtof(instance->input_buffer, &endptr);
+                
+                if (endptr && (*endptr == 'f' || *endptr == 'F')) {
+                    input_value.type = TYPE_FLOAT;
+                    input_value.f = val;
+                }
+                else if (strchr(instance->input_buffer, '.') || strchr(instance->input_buffer, 'e') || strchr(instance->input_buffer, 'E')) {
+                    input_value.type = TYPE_FLOAT;
+                    input_value.f = val;
+                }
+                else {
+                    input_value.type = TYPE_INT;
+                    input_value.i = (int)val;
+                }
+            }
+            else if (instance->input_mode == INPUT_MODE_ASCII) {
+                input_value.type = TYPE_INT;
+                input_value.i = instance->input_buffer[0] ? (int)instance->input_buffer[0] : 0;
+            }
+            else if (instance->input_mode == INPUT_MODE_STRING) {
+                input_value.type = TYPE_STRING;
+                input_value.string.size = strlen(instance->input_buffer);
+                if (input_value.string.size > INTERPRETER_MAX_ARRAY_SIZE) {
+                    input_value.string.size = INTERPRETER_MAX_ARRAY_SIZE;
+                }
+                memcpy(input_value.string.data, instance->input_buffer, input_value.string.size);
+            }
+            
+            interpreter_set_variable(instance, instance->input_variable_name, input_value);
+            
+            instance->waiting_for_input = 0;
+            instance->input_ready = 0;
+            instance->input_buffer[0] = '\0';
+            instance->input_variable_name = (void*)0;
+            instance->input_mode = INPUT_MODE_NONE;
+        }
+        else {
+            return 1;
+        }
+    }
+
     int instructions_executed = 0;
     while (instance->execution_position < instance->parsed_line_count && 
            instance->execution_position >= 0 && 
            !instance->should_stop &&
            !instance->is_sleeping &&
+           !instance->waiting_for_input &&
            instructions_executed < max_instructions) {
         
         int token_count = instance->line_token_counts[instance->execution_position];

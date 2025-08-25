@@ -1183,7 +1183,64 @@ void interpreter_execute_end(Interpreter_Instance* instance, char** tokens, int 
 
 void interpreter_execute_input(Interpreter_Instance* instance, char** tokens, int token_count)
 {
+    if (token_count < 3) {
+        printf("Error: INPUT instruction requires a mode and a variable name.\n");
+        interpreter_halt();
+        return;
+    }
+
+    const char* mode = tokens[1];
+    const char* var_name = tokens[2];
+
+    if (interpreter_ci_strcmp(mode, "$") == 0) {
+        Interpreter_Value* var = interpreter_get_variable(instance, var_name);
+        if (!var) {
+            printf("Error: INPUT: Variable not found or not declared.\n");
+            interpreter_halt();
+            return;
+        }
+        
+        instance->waiting_for_input = 1;
+        instance->input_variable_name = (char*)var_name;
+        instance->input_ready = 0;
+        instance->input_buffer[0] = '\0';
+        
+        app_runtime_request_input();
+        
+        instance->input_mode = INPUT_MODE_NUMERIC;
+    }
+    else if (interpreter_ci_strcmp(mode, "ascii") == 0) {
+        instance->waiting_for_input = 1;
+        instance->input_variable_name = (char*)var_name;
+        instance->input_ready = 0;
+        instance->input_buffer[0] = '\0';
+        
+        app_runtime_request_input();
+        
+        instance->input_mode = INPUT_MODE_ASCII;
+    }
+    else if (interpreter_ci_strcmp(mode, "string") == 0) {
+        Interpreter_Value* str_var = interpreter_get_variable(instance, var_name);
+        if (!str_var || str_var->type != TYPE_STRING) {
+            printf("Error: Variable is not a string.\n");
+            interpreter_halt();
+            return;
+        }
+        
+        instance->waiting_for_input = 1;
+        instance->input_variable_name = (char*)var_name;
+        instance->input_ready = 0;
+        instance->input_buffer[0] = '\0';
+        
+        app_runtime_request_input();
     
+        instance->input_mode = INPUT_MODE_STRING;
+    }
+    else {
+        printf("Error: Unknown INPUT mode.\n");
+        interpreter_halt();
+        return;
+    }
 }
 
 void interpreter_execute_save(Interpreter_Instance* instance, char** tokens, int token_count)

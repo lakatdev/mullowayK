@@ -5,6 +5,13 @@
 #include <interpreter/config.h>
 #include <interpreter/function.h>
 
+typedef enum {
+    INPUT_MODE_NONE,
+    INPUT_MODE_STRING,
+    INPUT_MODE_NUMERIC,
+    INPUT_MODE_ASCII
+} Interpreter_InputMode;
+
 typedef struct {
     int return_address;
     int local_var_count;
@@ -29,6 +36,11 @@ typedef struct {
     int instruction_count;
     int is_sleeping;
     unsigned long long int sleep_until_tick;
+    int waiting_for_input;
+    char* input_variable_name;
+    char input_buffer[INTERPRETER_MAX_INPUT_LENGTH];
+    int input_ready;
+    Interpreter_InputMode input_mode;
 } Interpreter_Instance;
 
 #endif

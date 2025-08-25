@@ -20,6 +20,9 @@ char app_runtime_load_second = 0;
 int app_runtime_error_code = 0;
 int app_runtime_execution_requested = 0;
 int app_runtime_executing = 0;
+int app_runtime_input_requested = 0;
+char app_runtime_input_buffer[INTERPRETER_MAX_INPUT_LENGTH] = {0};
+int app_runtime_input_buffer_length = 0;
 #define APP_RUNTIME_WIDTH 80
 #define APP_RUNTIME_HEIGHT 25
 
@@ -33,6 +36,13 @@ Interpreter_Instance* app_runtime_get_current_instance()
         return &app_runtime_instances[app_runtime_instance_stack_top];
     }
     return (void*)0;
+}
+
+void app_runtime_request_input()
+{
+    app_runtime_input_requested = 1;
+    app_runtime_input_buffer[0] = '\0';
+    app_runtime_input_buffer_length = 0;
 }
 
 void app_runtime_scroll_video()
@@ -201,6 +211,14 @@ void app_runtime_draw()
             }
         }
     }
+    
+    if (app_runtime_input_requested) {
+        int input_y = get_window_height() - 30;
+        draw_rect(0, input_y, get_window_width(), 20, THEME_HIGHLIGHT_COLOR);
+        draw_text(10, input_y + 15, "Input: ", 20, THEME_TEXT_COLOR);
+        draw_text(70, input_y + 15, app_runtime_input_buffer, 20, THEME_TEXT_COLOR);
+        draw_text(70 + strlen(app_runtime_input_buffer) * 10, input_y + 15, "_", 20, THEME_TEXT_COLOR);
+    }
 }
 
 void app_runtime_clear_buffer()
@@ -303,6 +321,9 @@ void app_runtime_stop_execute()
     }
     app_runtime_executing = 0;
     app_runtime_instance_stack_top = -1;
+    app_runtime_input_requested = 0;
+    app_runtime_input_buffer[0] = '\0';
+    app_runtime_input_buffer_length = 0;
 }
 
 void app_runtime_request_execute()
@@ -381,12 +402,48 @@ int app_runtime_push_instance_from_file(const char* filename)
 
 void app_runtime_send_io()
 {
-
+    if (app_runtime_input_requested && app_runtime_instance_stack_top >= 0) {
+        Interpreter_Instance* current = app_runtime_get_current_instance();
+        if (current && current->waiting_for_input) {
+            strncpy(current->input_buffer, app_runtime_input_buffer, sizeof(current->input_buffer) - 1);
+            current->input_buffer[sizeof(current->input_buffer) - 1] = '\0';
+            current->input_ready = 1;
+            
+            app_runtime_input_requested = 0;
+            app_runtime_input_buffer[0] = '\0';
+            app_runtime_input_buffer_length = 0;
+        }
+    }
 }
 
 void app_runtime_key(char key)
 {
-
+    if (app_runtime_input_requested) {
+        switch (key) {
+            case '\b': {
+                if (app_runtime_input_buffer_length > 0) {
+                    app_runtime_input_buffer_length--;
+                    app_runtime_input_buffer[app_runtime_input_buffer_length] = '\0';
+                }
+                break;
+            }
+            case '\n': {
+                app_runtime_send_io();
+                break;
+            }
+            default: {
+                if (key >= 32 && key <= 126) {
+                    if (app_runtime_input_buffer_length < sizeof(app_runtime_input_buffer) - 1) {
+                        app_runtime_input_buffer[app_runtime_input_buffer_length] = key;
+                        app_runtime_input_buffer_length++;
+                        app_runtime_input_buffer[app_runtime_input_buffer_length] = '\0';
+                    }
+                }
+                break;
+            }
+        }
+        invalidate();
+    }
 }
 
 void app_runtime_mouse(int x, int y)
