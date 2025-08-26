@@ -46,8 +46,8 @@ void ata_lba_write(unsigned int lba, unsigned char sector_count, const unsigned 
     outb(0x1F7, ATA_CMD_WRITE);
 
     for (unsigned char s = 0; s < sector_count; s++) {
-        if (ata_wait(0, 0x80) < 0) { printf("BSY-clear timeout\n"); return; }
-        if (ata_wait(0x08, 0) < 0) { printf("DRQ-set  timeout\n"); return; }
+        if (ata_wait(0, 0x80) < 0) { printf("ATA: BSY-clear timeout\n"); return; }
+        if (ata_wait(0x08, 0) < 0) { printf("ATA: DRQ-set  timeout\n"); return; }
         const unsigned short *p = data + (s * 256);
         for (unsigned short i = 0; i < 256; i++) {
             outb(0x1F0, (unsigned char)( p[i]        & 0xFF ));
@@ -56,7 +56,7 @@ void ata_lba_write(unsigned int lba, unsigned char sector_count, const unsigned 
     }
 
     if (ata_wait(0, 0x88) < 0) {
-        printf("ATA write-complete timeout\n");
+        printf("ATA: write-complete timeout\n");
         return;
     }
 }
@@ -82,4 +82,37 @@ void ata_lba_read(unsigned int lba, unsigned char sector_count, unsigned short *
             p[i] = inw(0x1F0);
         }
     }
+}
+
+int ata_lba_read_safe(unsigned int lba, unsigned char sector_count, unsigned short *data)
+{
+    int timeout = 10000;
+    while (timeout-- > 0) {
+        unsigned char status = inb(0x1F7);
+        if (status == 0xFF) {
+            return -1;
+        }
+        if (!(status & 0x80)) {
+            break;
+        }
+    }
+    
+    if (timeout <= 0) {
+        return -1;
+    }
+    
+    ata_lba_read(lba, sector_count, data);
+    
+    timeout = 10000;
+    while (timeout-- > 0) {
+        unsigned char status = inb(0x1F7);
+        if (status == 0xFF) {
+            return -1;
+        }
+        if (!(status & 0x80)) {
+            return 0;
+        }
+    }
+    
+    return -1;
 }

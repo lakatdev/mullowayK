@@ -3,11 +3,26 @@
 #include <memory.h>
 #include <interrupts.h>
 #include <interface.h>
+#include <port.h>
 
 #define MAX_DATA_LBAS ((STORAGE_RECORD_SIZE + 511) / 512)
 
 unsigned int first_lba = 0;
 char storage_initialized = 0;
+
+int ata_controller_present()
+{
+    unsigned char status = inb(0x1F7);
+    if (status == 0xFF) {
+        return 0;
+    }
+    outb(0x1F6, 0xA0);
+    for (int i = 0; i < 1000; i++) {
+        inb(0x1F7);
+    }
+    status = inb(0x1F7);
+    return (status != 0xFF && status != 0x00);
+}
 
 /**
  * TODO: This model wastes a lot of space, needs to be reworked.
@@ -17,8 +32,19 @@ void init_storage(unsigned int start_address)
     storage_initialized = 0;
     first_lba = start_address;
 
+    printf("ATA: Looking for controller.\n");
+    if (!ata_controller_present()) {
+        printf("ATA: Controller not detected. Storage disabled.\n");
+        return;
+    }
+    
+    printf("ATA: Controller found. Initializing storage.\n");
+
     unsigned char magic_sector[512] = {0};
-    ata_lba_read(first_lba, 1, (unsigned short*)magic_sector);
+    if (ata_lba_read_safe(first_lba, 1, (unsigned short*)magic_sector) != 0) {
+        printf("Storage read failed. Storage disabled.\n");
+        return;
+    }
 
     if (magic_sector[0] == 'G' && magic_sector[1] == 'I' && magic_sector[2] == 'P' && magic_sector[3] == '!') {
         unsigned int record_size = (magic_sector[4] << 24) | (magic_sector[5] << 16) | (magic_sector[6] << 8) | magic_sector[7];
@@ -26,12 +52,17 @@ void init_storage(unsigned int start_address)
         unsigned int record_count = (magic_sector[12] << 24) | (magic_sector[13] << 16) | (magic_sector[14] << 8) | magic_sector[15];
 
         if (record_size == STORAGE_RECORD_SIZE && key_size == STORAGE_KEY_SIZE) {
+            printf("ATA: ");
+            print_hex(record_count);
+            printf(" records in storage.\n");
             storage_initialized = 1;
         }
-
-        printf("ATA: ");
-        print_hex(record_count);
-        printf(" records in storage.\n");
+        else {
+            printf("ATA: Storage format mismatch. Disk can be formatted.\n");
+        }
+    }
+    else {
+        printf("ATA: Invalid storage type. Disk can be formatted.\n");
     }
 }
 

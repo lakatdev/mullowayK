@@ -320,8 +320,8 @@ void terminate_desktop()
 void format_disk()
 {
     if (!is_storage_initialized()) {
-        write_magic_number(8192);
-        init_storage(8192);
+        write_magic_number(32768);
+        init_storage(32768);
     }
 }
 

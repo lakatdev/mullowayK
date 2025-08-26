@@ -3,5 +3,6 @@
 
 void ata_lba_write(unsigned int lba, unsigned char sector_count, const unsigned short *data);
 void ata_lba_read(unsigned int lba, unsigned char sector_count, unsigned short *data);
+int ata_lba_read_safe(unsigned int lba, unsigned char sector_count, unsigned short *data);
 
 #endif

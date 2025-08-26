@@ -205,7 +205,7 @@ void kernel_main(const void* multiboot_struct)
     init_graphics(buffer);
     init_mouse();
     init_serial();
-    init_storage(8192);
+    init_storage(32768);
 
     system_draw_screen(0, 0, 0);
     system_draw_image(WIDTH / 2 - 75, HEIGHT / 2 - 30, 150, 60, mlogo_60, 255, 255, 255);
