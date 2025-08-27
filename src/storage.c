@@ -4,6 +4,7 @@
 #include <interrupts.h>
 #include <interface.h>
 #include <port.h>
+#include <pci.h>
 
 #define MAX_DATA_LBAS ((STORAGE_RECORD_SIZE + 511) / 512)
 
@@ -12,15 +13,28 @@ char storage_initialized = 0;
 
 int ata_controller_present()
 {
-    unsigned char status = inb(0x1F7);
+    printf("ATA: status = ");
+    print_hex(ata_get_status());
+    printf(", altstatus = ");
+    print_hex(ata_get_altstatus());
+    printf("\n");
+
+    unsigned char status = ata_get_status();
     if (status == 0xFF) {
         return 0;
     }
-    outb(0x1F6, 0xA0);
-    for (int i = 0; i < 1000; i++) {
-        inb(0x1F7);
+
+    if (status & 0x01) {
+        ata_reset_channel();
+        status = ata_get_status();
+        if (status == 0xFF) return 0;
     }
-    status = inb(0x1F7);
+
+    ata_select_drive(0xA0);
+    for (int i = 0; i < 1000; i++) {
+        (void)ata_get_status();
+    }
+    status = ata_get_status();
     return (status != 0xFF && status != 0x00);
 }
 
@@ -31,6 +45,14 @@ void init_storage(unsigned int start_address)
 {
     storage_initialized = 0;
     first_lba = start_address;
+
+    scan_bus(0);
+
+    unsigned short io = 0, ctrl = 0;
+    if (pci_get_ide_selected_ports(&io, &ctrl)) {
+        ata_set_bases(io, ctrl);
+        ata_reset_channel();
+    }
 
     printf("ATA: Looking for controller.\n");
     if (!ata_controller_present()) {

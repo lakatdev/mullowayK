@@ -239,6 +239,7 @@ void app_runtime_load_code(const char* code)
 
 void app_runtime_clear_code()
 {
+    app_runtime_stop_execute();
     app_runtime_loaded = 0;
     app_runtime_error_code = 0;
     app_runtime_execution_requested = 0;

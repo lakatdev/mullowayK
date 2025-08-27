@@ -1,0 +1,131 @@
+#include <port.h>
+#include <interface.h>
+
+#define PCI_CFG_ADDR 0xCF8
+#define PCI_CFG_DATA 0xCFC
+
+static inline unsigned int pci_read32(unsigned char bus, unsigned char dev, unsigned char fn, unsigned char off)
+{
+    unsigned int addr = (1u << 31) | ((unsigned)bus << 16) | ((unsigned)dev << 11) | ((unsigned)fn << 8) | (off & 0xFC);
+    outl(PCI_CFG_ADDR, addr);
+    return inl(PCI_CFG_DATA);
+}
+
+static inline unsigned short pci_read16(unsigned char bus, unsigned char dev, unsigned char fn, unsigned char off)
+{
+    unsigned int v = pci_read32(bus, dev, fn, off & 0xFC);
+    return (unsigned short)((v >> ((off & 2) * 8)) & 0xFFFF);
+}
+
+static inline void pci_write16(unsigned char bus, unsigned char dev, unsigned char fn, unsigned char off, unsigned short val)
+{
+    unsigned int addr = (1u << 31) | ((unsigned)bus << 16) | ((unsigned)dev << 11) | ((unsigned)fn << 8) | (off & 0xFC);
+    outl(PCI_CFG_ADDR, addr);
+    unsigned int old = inl(PCI_CFG_DATA);
+    unsigned int shift = (off & 2) * 8;
+    unsigned int mask = 0xFFFFu << shift;
+    unsigned int nv = (old & ~mask) | ((unsigned int)val << shift);
+    outl(PCI_CFG_DATA, nv);
+}
+
+static inline unsigned char pci_read8(unsigned char bus, unsigned char dev, unsigned char fn, unsigned char off)
+{
+    unsigned int v = pci_read32(bus, dev, fn, off & 0xFC);
+    return (unsigned char)((v >> ((off & 3) * 8)) & 0xFF);
+}
+
+typedef struct {
+    unsigned short io_base;
+    unsigned short ctrl_base;
+    int found;
+} ata_channel_t;
+
+static ata_channel_t primary = {0}, secondary = {0};
+
+static unsigned short g_sel_io = 0;
+static unsigned short g_sel_ctrl = 0;
+
+static void probe_ide(unsigned char bus, unsigned char dev, unsigned char fn)
+{
+    unsigned int classreg = pci_read32(bus, dev, fn, 0x08);
+    unsigned char base_class = (classreg >> 24) & 0xFF;
+    unsigned char sub_class  = (classreg >> 16) & 0xFF;
+    unsigned char prog_if    = (classreg >> 8)  & 0xFF;
+
+    if (base_class != 0x01) return;
+
+    if (sub_class == 0x01) {
+        unsigned short cmdreg = pci_read16(bus, dev, fn, 0x04);
+        unsigned short newcmd = cmdreg | 0x0001 | 0x0004;
+        if (newcmd != cmdreg) {
+            pci_write16(bus, dev, fn, 0x04, newcmd);
+        }
+
+        unsigned int bar0 = pci_read32(bus, dev, fn, 0x10);
+        unsigned int bar1 = pci_read32(bus, dev, fn, 0x14);
+        unsigned int bar2 = pci_read32(bus, dev, fn, 0x18);
+        unsigned int bar3 = pci_read32(bus, dev, fn, 0x1C);
+
+        unsigned short p_cmd  = (bar0 & 1) ? (bar0 & ~3) : 0x1F0;
+        unsigned short p_ctrl = (bar1 & 1) ? ((bar1 & ~3) + 2) : 0x3F6;
+        unsigned short s_cmd  = (bar2 & 1) ? (bar2 & ~3) : 0x170;
+        unsigned short s_ctrl = (bar3 & 1) ? ((bar3 & ~3) + 2) : 0x376;
+
+        primary.io_base   = p_cmd;  primary.ctrl_base   = p_ctrl;  primary.found   = 1;
+        secondary.io_base = s_cmd;  secondary.ctrl_base = s_ctrl;  secondary.found = 1;
+
+        printf("IDE: progIF = "); print_hex(prog_if); printf("\n");
+        printf("IDE primary: cmd = "); print_hex(p_cmd);
+        printf(" ctrl = "); print_hex(p_ctrl); printf("\n");
+        printf("IDE secondary: cmd = "); print_hex(s_cmd);
+        printf(" ctrl = "); print_hex(s_ctrl); printf("\n");
+
+        if (g_sel_io == 0) {
+            unsigned char stp = inb(p_cmd + 7);
+            if (stp != 0xFF) { g_sel_io = p_cmd; g_sel_ctrl = p_ctrl; }
+        }
+        if (g_sel_io == 0) {
+            unsigned char sts = inb(s_cmd + 7);
+            if (sts != 0xFF) { g_sel_io = s_cmd; g_sel_ctrl = s_ctrl; }
+        }
+    }
+    else if (sub_class == 0x06) {
+        printf("AHCI controller detected; PIO IDE driver cannot use it.\n");
+    }
+}
+
+int pci_get_ide_selected_ports(unsigned short* io, unsigned short* ctrl)
+{
+    if (g_sel_io != 0) {
+        if (io)   *io = g_sel_io;
+        if (ctrl) *ctrl = g_sel_ctrl;
+        return 1;
+    }
+    return 0;
+}
+
+void scan_bus(unsigned char bus)
+{
+    for (unsigned char dev = 0; dev < 32; dev++) {
+        unsigned int venddev = pci_read32(bus, dev, 0, 0x00);
+        if (venddev == 0xFFFFFFFF) continue;
+
+        unsigned char header_type = pci_read8(bus, dev, 0, 0x0E);
+        unsigned char multi_fn = header_type & 0x80;
+
+        for (unsigned char fn = 0; fn < (multi_fn ? 8 : 1); fn++) {
+            unsigned int vd = pci_read32(bus, dev, fn, 0x00);
+            if (vd == 0xFFFFFFFF) continue;
+
+            probe_ide(bus, dev, fn);
+
+            unsigned char hdr = pci_read8(bus, dev, fn, 0x0E) & 0x7F;
+            if (hdr == 0x01) {
+                unsigned char sec_bus = pci_read8(bus, dev, fn, 0x19);
+                if (sec_bus != 0 && sec_bus != bus) {
+                    scan_bus(sec_bus);
+                }
+            }
+        }
+    }
+}

@@ -22,6 +22,7 @@ objects = obj/loader.o \
 		obj/serial.o \
 		obj/userlib.o \
 		obj/ata.o \
+		obj/pci.o \
 		obj/storage.o \
 		obj/exceptions.o \
 		obj/apps/debug.o \

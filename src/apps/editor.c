@@ -110,6 +110,9 @@ void app_editor_draw()
 
 void app_editor_up()
 {
+    if (app_editor_selected_field != EDITOR_FIELD_MAIN) {
+        return;
+    }
     if (app_editor_cursor_y > 0) {
         app_editor_cursor_y--;
         char* line = app_editor_get_line(app_editor_cursor_y);
@@ -126,6 +129,9 @@ void app_editor_up()
 
 void app_editor_down()
 {
+    if (app_editor_selected_field != EDITOR_FIELD_MAIN) {
+        return;
+    }
     int lines = app_editor_line_count();
     int visible_lines = (get_window_height() / 20) - 1;
     if (app_editor_cursor_y < lines - 1) {
@@ -141,8 +147,6 @@ void app_editor_down()
         }
     }
 }
-
-
 
 void app_editor_key(char key)
 {
@@ -273,13 +277,23 @@ void app_editor_key(char key)
     }
 }
 
+void app_editor_edit_path()
+{
+    app_editor_selected_field = EDITOR_FIELD_PATH;
+}
+
+void app_editor_edit_main()
+{
+    app_editor_selected_field = EDITOR_FIELD_MAIN;
+}
+
 void app_editor_mouse(int x, int y)
 {
     if (y >= get_window_height() - 20) {
-        app_editor_selected_field = EDITOR_FIELD_PATH;
+        app_editor_edit_path();
         return;
     }
-    app_editor_selected_field = EDITOR_FIELD_MAIN;
+    app_editor_edit_main();
 }
 
 char* app_editor_get_text_ptr()
@@ -365,5 +379,15 @@ void app_editor_init()
     add_app_menu_item((MenuItem) {
         .name = "Down",
         .action = app_editor_down
+    });
+
+    add_app_menu_item((MenuItem) {
+        .name = "Edit path",
+        .action = app_editor_edit_path
+    });
+
+    add_app_menu_item((MenuItem) {
+        .name = "Edit main",
+        .action = app_editor_edit_main
     });
 }
