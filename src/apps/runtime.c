@@ -237,6 +237,20 @@ void app_runtime_load_code(const char* code)
     app_runtime_load_second = get_second();
 }
 
+void app_runtime_stop_execute()
+{
+    app_runtime_execution_requested = 0;
+    Interpreter_Instance* current = app_runtime_get_current_instance();
+    if (app_runtime_executing && current && current->is_running) {
+        interpreter_stop(current);
+    }
+    app_runtime_executing = 0;
+    app_runtime_instance_stack_top = -1;
+    app_runtime_input_requested = 0;
+    app_runtime_input_buffer[0] = '\0';
+    app_runtime_input_buffer_length = 0;
+}
+
 void app_runtime_clear_code()
 {
     app_runtime_stop_execute();
@@ -308,20 +322,6 @@ void app_runtime_continue_execution()
             app_runtime_instance_stack_top = -1;
         }
     }
-}
-
-void app_runtime_stop_execute()
-{
-    app_runtime_execution_requested = 0;
-    Interpreter_Instance* current = app_runtime_get_current_instance();
-    if (app_runtime_executing && current && current->is_running) {
-        interpreter_stop(current);
-    }
-    app_runtime_executing = 0;
-    app_runtime_instance_stack_top = -1;
-    app_runtime_input_requested = 0;
-    app_runtime_input_buffer[0] = '\0';
-    app_runtime_input_buffer_length = 0;
 }
 
 void app_runtime_request_execute()
