@@ -97,7 +97,7 @@ void invalidate()
 
 void key_press(char key)
 {
-    if (application_count > 0) {
+    if (application_count > 0 && selected_application != -1) {
         applications[selected_application].key_press(key);
         invalidate();
     }
