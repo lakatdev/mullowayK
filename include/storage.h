@@ -17,7 +17,7 @@ void read_from_storage(const char* key, char* buffer, unsigned int* size);
 void delete_from_storage(const char* key);
 int files_exists(const char* key);
 int get_record_count();
-void write_magic_number(unsigned int lba);
+int write_magic_number(unsigned int lba);
 int get_record_key(unsigned int index, char* key_out);
 char is_storage_initialized();
 

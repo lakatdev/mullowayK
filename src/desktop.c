@@ -320,8 +320,21 @@ void terminate_desktop()
 void format_disk()
 {
     if (!is_storage_initialized()) {
-        write_magic_number(32768);
+        if (write_magic_number(32768) != 0) {
+            printf("System: Disk format failed!\n");
+            return;
+        }
+        printf("System: Disk formatted successfully.\n");
         init_storage(32768);
+        if (is_storage_initialized()) {
+            printf("System: Storage reinitialized successfully!\n");
+        }
+        else {
+            printf("System: Storage reinitialization failed!\n");
+        }
+    }
+    else {
+        printf("System: Storage already initialized\n");
     }
 }
 

@@ -21,21 +21,22 @@ int ata_controller_present()
 
     unsigned char status = ata_get_status();
     if (status == 0xFF) {
+        printf("ATA: Status register - no controller\n");
         return 0;
     }
 
-    if (status & 0x01) {
-        ata_reset_channel();
-        status = ata_get_status();
-        if (status == 0xFF) return 0;
+    unsigned short identify_data[256];
+    if (ata_identify_drive(0xA0, identify_data) == 0) {
+        return 1;
+    }
+    
+    if (ata_identify_drive(0xB0, identify_data) == 0) {
+        ata_select_drive(0xB0);
+        return 1;
     }
 
-    ata_select_drive(0xA0);
-    for (int i = 0; i < 1000; i++) {
-        (void)ata_get_status();
-    }
-    status = ata_get_status();
-    return (status != 0xFF && status != 0x00);
+    printf("ATA: No drives found on this controller\n");
+    return 0;
 }
 
 /**
@@ -49,23 +50,72 @@ void init_storage(unsigned int start_address)
     scan_bus(0);
 
     unsigned short io = 0, ctrl = 0;
+    int controller_found = 0;
+
     if (pci_get_ide_selected_ports(&io, &ctrl)) {
         ata_set_bases(io, ctrl);
         ata_reset_channel();
+
+        if (ata_controller_present()) {
+            controller_found = 1;
+        }
     }
 
-    printf("ATA: Looking for controller.\n");
-    if (!ata_controller_present()) {
-        printf("ATA: Controller not detected. Storage disabled.\n");
+    if (!controller_found) {
+        while (pci_next_ide_controller(&io, &ctrl)) {
+            ata_set_bases(io, ctrl);
+            ata_reset_channel();
+            
+            if (ata_controller_present()) {
+                controller_found = 1;
+                break;
+            }
+        }
+    }
+
+    if (!controller_found) {
+        printf("ATA: No working controller found. Storage disabled.\n");
         return;
     }
     
     printf("ATA: Controller found. Initializing storage.\n");
 
+    unsigned int test_lbas[] = {first_lba, 0, 1, 2048, 4096};
+    int num_test_lbas = sizeof(test_lbas) / sizeof(test_lbas[0]);
+    
     unsigned char magic_sector[512] = {0};
-    if (ata_lba_read_safe(first_lba, 1, (unsigned short*)magic_sector) != 0) {
-        printf("Storage read failed. Storage disabled.\n");
+    int read_success = 0;
+    unsigned int working_lba = first_lba;
+    
+    for (int i = 0; i < num_test_lbas; i++) {
+        printf("ATA: Testing read from LBA ");
+        print_hex(test_lbas[i]);
+        printf("\n");
+        
+        if (ata_lba_read_safe(test_lbas[i], 1, (unsigned short*)magic_sector) == 0) {
+            printf("ATA: Successfully read from LBA ");
+            print_hex(test_lbas[i]);
+            printf("\n");
+            working_lba = test_lbas[i];
+            read_success = 1;
+            break;
+        }
+        printf("ATA: Failed to read from LBA ");
+        print_hex(test_lbas[i]);
+    }
+
+    if (!read_success) {
+        printf("Storage read failed from all test LBAs. Storage disabled.\n");
         return;
+    }
+
+    if (working_lba != first_lba) {
+        printf("ATA: Using LBA = ");
+        print_hex(working_lba);
+        printf(" , original = ");
+        print_hex(first_lba);
+        printf("\n");
+        first_lba = working_lba;
     }
 
     if (magic_sector[0] == 'G' && magic_sector[1] == 'I' && magic_sector[2] == 'P' && magic_sector[3] == '!') {
@@ -109,12 +159,17 @@ void set_record_count(unsigned int count)
         return;
     }
     char magic[512];
-    ata_lba_read(first_lba, 1, (unsigned short*)magic);
+    if (ata_lba_read_safe(first_lba, 1, (unsigned short*)magic) != 0) {
+        printf("ATA: Failed to read sector for record count update\n");
+        return;
+    }
     magic[12] = (count >> 24) & 0xFF;
     magic[13] = (count >> 16) & 0xFF;
     magic[14] = (count >>  8) & 0xFF;
     magic[15] =  count        & 0xFF;
-    ata_lba_write(first_lba, 1, (unsigned short*)magic);
+    if (ata_lba_write_safe(first_lba, 1, (unsigned short*)magic) != 0) {
+        printf("ATA: Failed to write sector for record count update\n");
+    }
 }
 
 void write_to_storage(const char* key, const char* data, unsigned int size)
@@ -155,14 +210,22 @@ void write_to_storage(const char* key, const char* data, unsigned int size)
     strncpy(out.key, key, STORAGE_KEY_SIZE);
     out.valid = 1;
     out.size  = size;
-    ata_lba_write(hdr_lba, 1, (unsigned short*)&out);
+    if (ata_lba_write_safe(hdr_lba, 1, (unsigned short*)&out) != 0) {
+        printf("ATA: Failed to write storage record header\n");
+        return;
+    }
 
     unsigned int sectors = (size + 511) / 512;
     for (unsigned int s = 0; s < sectors; s++) {
         char buf[512] = {0};
         unsigned int chunk = (s + 1 < sectors) ? 512 : (size - s*512);
         memcpy(buf, data + s*512, chunk);
-        ata_lba_write(hdr_lba + 1 + s, 1, (unsigned short*)buf);
+        if (ata_lba_write_safe(hdr_lba + 1 + s, 1, (unsigned short*)buf) != 0) {
+            printf("ATA: Failed to write storage data sector ");
+            print_hex(s);
+            printf("\n");
+            return;
+        }
     }
 }
 
@@ -220,7 +283,10 @@ void delete_from_storage(const char* key)
             found++;
             if (strcmp(hdr.key, key) == 0) {
                 hdr.valid = 0;
-                ata_lba_write(hdr_lba, 1, (unsigned short*)&hdr);
+                if (ata_lba_write_safe(hdr_lba, 1, (unsigned short*)&hdr) != 0) {
+                    printf("ATA: Failed to write deletion update\n");
+                    return;
+                }
                 set_record_count(records - 1);
                 break;
             }
@@ -281,7 +347,7 @@ int files_exists(const char* key)
     return 0;
 }
 
-void write_magic_number(unsigned int lba)
+int write_magic_number(unsigned int lba)
 {
     unsigned char magic_sector[512] = {0};
 
@@ -309,5 +375,9 @@ void write_magic_number(unsigned int lba)
     magic_sector[14] = (0 >> 8) & 0xFF;
     magic_sector[15] = 0 & 0xFF;
 
-    ata_lba_write(lba, 1, (const short unsigned int*)magic_sector);
+    if (ata_lba_write_safe(lba, 1, (const unsigned short*)magic_sector) != 0) {
+        printf("ATA: Failed to write magic number\n");
+        return -1;
+    }
+    return 0;
 }

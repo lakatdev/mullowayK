@@ -42,6 +42,15 @@ typedef struct {
 
 static ata_channel_t primary = {0}, secondary = {0};
 
+typedef struct {
+    unsigned short io;
+    unsigned short ctrl;
+} ide_port_pair_t;
+
+#define MAX_IDE_CONTROLLERS 9
+static ide_port_pair_t ide_controllers[MAX_IDE_CONTROLLERS];
+static int ide_controller_count = 0;
+
 static unsigned short g_sel_io = 0;
 static unsigned short g_sel_ctrl = 0;
 
@@ -80,13 +89,31 @@ static void probe_ide(unsigned char bus, unsigned char dev, unsigned char fn)
         printf("IDE secondary: cmd = "); print_hex(s_cmd);
         printf(" ctrl = "); print_hex(s_ctrl); printf("\n");
 
+        if (ide_controller_count < MAX_IDE_CONTROLLERS) {
+            ide_controllers[ide_controller_count].io = p_cmd;
+            ide_controllers[ide_controller_count].ctrl = p_ctrl;
+            ide_controller_count++;
+        }
+        if (ide_controller_count < MAX_IDE_CONTROLLERS) {
+            ide_controllers[ide_controller_count].io = s_cmd;
+            ide_controllers[ide_controller_count].ctrl = s_ctrl;
+            ide_controller_count++;
+        }
+
         if (g_sel_io == 0) {
             unsigned char stp = inb(p_cmd + 7);
-            if (stp != 0xFF) { g_sel_io = p_cmd; g_sel_ctrl = p_ctrl; }
+            if (stp != 0xFF && stp != 0x00) { 
+                g_sel_io = p_cmd; 
+                g_sel_ctrl = p_ctrl;
+            }
         }
+
         if (g_sel_io == 0) {
             unsigned char sts = inb(s_cmd + 7);
-            if (sts != 0xFF) { g_sel_io = s_cmd; g_sel_ctrl = s_ctrl; }
+            if (sts != 0xFF && sts != 0x00) { 
+                g_sel_io = s_cmd; 
+                g_sel_ctrl = s_ctrl;
+            }
         }
     }
     else if (sub_class == 0x06) {
@@ -102,6 +129,25 @@ int pci_get_ide_selected_ports(unsigned short* io, unsigned short* ctrl)
         return 1;
     }
     return 0;
+}
+
+int pci_next_ide_controller(unsigned short* io, unsigned short* ctrl)
+{
+    static int tried_controller = 0;
+    if (tried_controller >= ide_controller_count) {
+        return 0;
+    }
+    
+    if (io) {
+        *io = ide_controllers[tried_controller].io;
+    }
+
+    if (ctrl) {
+        *ctrl = ide_controllers[tried_controller].ctrl;
+    }
+
+    tried_controller++;
+    return 1;
 }
 
 void scan_bus(unsigned char bus)

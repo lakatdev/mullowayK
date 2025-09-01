@@ -7,7 +7,9 @@ unsigned char ata_get_altstatus();
 void ata_select_drive(unsigned char v);
 void ata_reset_channel();
 
+int ata_identify_drive(unsigned char drive_select, unsigned short* identify_buffer);
 void ata_lba_write(unsigned int lba, unsigned char sector_count, const unsigned short *data);
+int ata_lba_write_safe(unsigned int lba, unsigned char sector_count, const unsigned short *data);
 void ata_lba_read(unsigned int lba, unsigned char sector_count, unsigned short *data);
 int ata_lba_read_safe(unsigned int lba, unsigned char sector_count, unsigned short *data);
 
