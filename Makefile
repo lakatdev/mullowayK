@@ -44,6 +44,7 @@ obj/%.o: src/%.s
 
 build: linker.ld $(objects)
 	$(LD) $(LDPARAMS) -T $< -o $@ $(objects)
+	tar -xzf i386-pc.tar.gz
 	mkdir iso
 	mkdir iso/boot
 	mkdir iso/boot/grub
@@ -55,10 +56,11 @@ build: linker.ld $(objects)
 	echo '  multiboot /boot/build'	>> iso/boot/grub/grub.cfg
 	echo '  boot'							>> iso/boot/grub/grub.cfg
 	echo '}'								 >> iso/boot/grub/grub.cfg
-	grub-mkrescue --output=mullowayk.iso iso
+	grub-mkrescue --directory=i386-pc --output=mullowayk.iso iso
+	rm -rf i386-pc
 	rm -rf iso
 run:
-	qemu-system-x86_64 -m 2048 -serial stdio mullowayk.iso
+	qemu-system-x86_64 -m 512 -serial stdio mullowayk.iso
 
 clean:
 	rm -rf obj build mullowayk.iso
