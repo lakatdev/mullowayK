@@ -9,7 +9,7 @@ typedef enum {
     EDITOR_FIELD_PATH
 } Editor_SelectedField;
 
-char app_editor_buffer[32000000];
+char app_editor_buffer[16000000];
 char app_editor_path[256] = "Untitled";
 int app_editor_buffer_size = 0;
 int app_editor_cursor_y = 0;
