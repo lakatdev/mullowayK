@@ -185,6 +185,70 @@ void set_timer_freq(unsigned int divisor)
     outb(0x40, divisor >> 8);
 }
 
+void shutdown()
+{
+    outw(0x604, 0x2000);
+    outw(0xB004, 0x2000);
+    outw(0x4004, 0x3400);
+    
+    unsigned short ax = 0x5300;
+    unsigned short bx = 0x0000;
+    
+    asm volatile (
+        "int $0x15"
+        : "=a" (ax), "=b" (bx)
+        : "a" (ax), "b" (bx)
+        : "ecx", "edx"
+    );
+    
+    if ((ax & 0xFF) == 0x00) {
+        ax = 0x530E;
+        bx = 0x0000;
+        unsigned short cx = 0x0101;
+        
+        asm volatile (
+            "int $0x15"
+            : "=a" (ax)
+            : "a" (ax), "b" (bx), "c" (cx)
+            : "edx"
+        );
+        
+        if ((ax & 0xFF) == 0x00) {
+            ax = 0x5308;
+            bx = 0x0001;
+            cx = 0x0001;
+            
+            asm volatile (
+                "int $0x15"
+                : "=a" (ax)
+                : "a" (ax), "b" (bx), "c" (cx)
+                : "edx"
+            );
+            
+            if ((ax & 0xFF) == 0x00) {
+                ax = 0x5307;
+                bx = 0x0001;
+                cx = 0x0003;
+                
+                asm volatile (
+                    "int $0x15"
+                    : "=a" (ax)
+                    : "a" (ax), "b" (bx), "c" (cx)
+                    : "edx"
+                );
+            }
+        }
+    }
+    
+    outw(0xB004, 0x2000);
+    outl(0x0CF9, 0x0E);
+    
+    asm volatile("cli");
+    while(1) {
+        asm volatile("hlt");
+    }
+}
+
 void kernel_main(const void* multiboot_struct)
 {
     // INITIALIZE
@@ -222,4 +286,5 @@ void kernel_main(const void* multiboot_struct)
     invalidate_buffer();
     sleep(1000);
     outb(0x21, 0xFF);
+    shutdown();
 }
