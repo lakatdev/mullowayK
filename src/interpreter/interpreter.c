@@ -565,6 +565,7 @@ int interpreter_jump_to_function(Interpreter_Instance* instance, const char* fun
             instance->call_stack[instance->stack_pointer].return_address = instance->execution_position + 1;
             instance->call_stack[instance->stack_pointer].local_var_count = 0;
             instance->call_stack[instance->stack_pointer].ref_count = 0;
+            instance->call_stack[instance->stack_pointer].return_var = (void*)0;
 
             int saved_execution_position = instance->execution_position;
             instance->execution_position = i;
