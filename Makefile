@@ -56,7 +56,7 @@ build: linker.ld $(objects)
 	echo '  multiboot /boot/build'	>> iso/boot/grub/grub.cfg
 	echo '  boot'							>> iso/boot/grub/grub.cfg
 	echo '}'								 >> iso/boot/grub/grub.cfg
-	grub-mkrescue --directory=i386-pc --output=mullowayk.iso iso
+	grub-mkrescue --directory=i386-pc --output=mullowayk.iso iso --locales=""
 	rm -rf i386-pc
 	rm -rf iso
 run:
