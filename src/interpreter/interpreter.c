@@ -5,6 +5,7 @@
 #include <memory.h>
 #include <storage.h>
 #include <interrupts.h>
+#include <serial.h>
 
 #define INT_MIN -2147483648
 #define INT_MAX 2147483647
@@ -681,7 +682,34 @@ int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructio
     }
 
     if (instance->waiting_for_input) {
-        if (instance->input_ready) {
+        if (instance->input_mode == INPUT_MODE_SERIAL) {
+            while (instance->serial_bytes_read < instance->serial_bytes_to_read && com1_data_available()) {
+                instance->input_buffer[instance->serial_bytes_read] = com1_read_byte();
+                instance->serial_bytes_read++;
+            }
+            
+            if (instance->serial_bytes_read >= instance->serial_bytes_to_read) {
+                Interpreter_Value input_value;
+                memset(&input_value, 0, sizeof(Interpreter_Value));
+                input_value.type = TYPE_STRING;
+                input_value.string.size = instance->serial_bytes_to_read;
+                memcpy(input_value.string.data, instance->input_buffer, instance->serial_bytes_to_read);
+                
+                interpreter_set_variable(instance, instance->input_variable_name, input_value);
+                
+                instance->waiting_for_input = 0;
+                instance->input_ready = 0;
+                instance->input_buffer[0] = '\0';
+                instance->input_variable_name = (void*)0;
+                instance->input_mode = INPUT_MODE_NONE;
+                instance->serial_bytes_to_read = 0;
+                instance->serial_bytes_read = 0;
+            }
+            else {
+                return 1;
+            }
+        }
+        else if (instance->input_ready) {
             Interpreter_Value input_value;
             memset(&input_value, 0, sizeof(Interpreter_Value));
             

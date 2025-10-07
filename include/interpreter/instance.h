@@ -9,7 +9,8 @@ typedef enum {
     INPUT_MODE_NONE,
     INPUT_MODE_STRING,
     INPUT_MODE_NUMERIC,
-    INPUT_MODE_ASCII
+    INPUT_MODE_ASCII,
+    INPUT_MODE_SERIAL
 } Interpreter_InputMode;
 
 typedef struct {
@@ -41,6 +42,8 @@ typedef struct {
     char input_buffer[INTERPRETER_MAX_INPUT_LENGTH];
     int input_ready;
     Interpreter_InputMode input_mode;
+    int serial_bytes_to_read;
+    int serial_bytes_read;
 } Interpreter_Instance;
 
 #endif

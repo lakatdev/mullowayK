@@ -230,16 +230,6 @@ int get_window_height()
     return uh;
 }
 
-void serial_write(const unsigned char* data, unsigned int size)
-{
-    com1_write(data, size);
-}
-
-void serial_read(unsigned char* data, unsigned int size)
-{
-    com1_read(data, size);
-}
-
 void confirm_dialog(void (*callback)(int result))
 {
     desktop_confirm_dialog(callback);

@@ -35,3 +35,13 @@ void com1_read(unsigned char* data, unsigned int size)
         data[i] = inb(COM1);
     }
 }
+
+int com1_data_available()
+{
+    return (inb(COM1 + 5) & 0x01);
+}
+
+unsigned char com1_read_byte()
+{
+    return inb(COM1);
+}
