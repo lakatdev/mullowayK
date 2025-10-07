@@ -23,6 +23,7 @@ int get_window_width();
 int get_window_height();
 void serial_write(const unsigned char* data, unsigned int size);
 void serial_read(unsigned char* data, unsigned int size);
+void confirm_dialog(void (*callback)(int result));
 
 void add_app_menu_item(MenuItem menu_item);
 

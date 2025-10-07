@@ -4,6 +4,7 @@
 #include <memory.h>
 #include <userlib.h>
 #include <serial.h>
+#include <desktop.h>
 
 void draw_screen(unsigned char r, unsigned char g, unsigned char b) 
 {
@@ -237,4 +238,9 @@ void serial_write(const unsigned char* data, unsigned int size)
 void serial_read(unsigned char* data, unsigned int size)
 {
     com1_read(data, size);
+}
+
+void confirm_dialog(void (*callback)(int result))
+{
+    desktop_confirm_dialog(callback);
 }

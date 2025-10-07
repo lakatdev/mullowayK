@@ -6,5 +6,6 @@ void draw_desktop();
 void key_press(char key);
 void mouse_click(int x, int y);
 void invalidate();
+void desktop_confirm_dialog(void (*callback)(int result));
 
 #endif

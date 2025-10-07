@@ -331,13 +331,20 @@ void app_editor_on_close()
     
 }
 
-void app_editor_new()
+void app_editor_new(int result)
 {
-    app_editor_buffer_size = 0;
-    app_editor_cursor_y = 0;
-    app_editor_scroll = 0;
-    app_editor_selected_field = EDITOR_FIELD_MAIN;
-    strncpy(app_editor_path, "Untitled", sizeof(app_editor_path) - 1);
+    if (result) {
+        app_editor_buffer_size = 0;
+        app_editor_cursor_y = 0;
+        app_editor_scroll = 0;
+        app_editor_selected_field = EDITOR_FIELD_MAIN;
+        strncpy(app_editor_path, "Untitled", sizeof(app_editor_path) - 1);
+    }
+}
+
+void app_editor_new_clicked()
+{
+    confirm_dialog(app_editor_new);
 }
 
 void app_editor_run()
@@ -368,7 +375,7 @@ void app_editor_init()
 
     add_app_menu_item((MenuItem) {
         .name = "New",
-        .action = app_editor_new
+        .action = app_editor_new_clicked
     });
 
     add_app_menu_item((MenuItem) {

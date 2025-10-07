@@ -61,6 +61,10 @@ int moving_application = -1;
 int move_offset_x = 0;
 int move_offset_y = 0;
 int resizing_application = -1;
+unsigned char show_confirm_dialog = 0;
+int confirm_dialog_result = 0;
+unsigned char confirm_dialog_waiting = 0;
+void (*confirm_dialog_callback)(int result) = 0;
 
 void update_info_bar()
 {
@@ -143,6 +147,41 @@ void add_menu_item(Menu* menu, MenuItem menu_item)
 
 void mouse_click(int x, int y)
 {
+    if (show_confirm_dialog) {
+        int dialog_x = WIDTH / 2 - 150;
+        int dialog_y = HEIGHT / 2 - 50;
+        int dialog_width = 300;
+        int dialog_height = 100;
+
+        if (x >= dialog_x + 55 && x < dialog_x + 135 &&
+            y >= dialog_y + 60 && y < dialog_y + 85) {
+            confirm_dialog_result = 1;
+            show_confirm_dialog = 0;
+            confirm_dialog_waiting = 0;
+            if (confirm_dialog_callback != 0) {
+                confirm_dialog_callback(1);
+                confirm_dialog_callback = 0;
+            }
+            invalidate();
+            return;
+        }
+        
+        if (x >= dialog_x + 165 && x < dialog_x + 245 &&
+            y >= dialog_y + 60 && y < dialog_y + 85) {
+            confirm_dialog_result = 0;
+            show_confirm_dialog = 0;
+            confirm_dialog_waiting = 0;
+            if (confirm_dialog_callback != 0) {
+                confirm_dialog_callback(0);
+                confirm_dialog_callback = 0;
+            }
+            invalidate();
+            return;
+        }
+        
+        return;
+    }
+    
     if (moving_application != -1) {
         moving_application = -1;
         return;
@@ -287,6 +326,31 @@ void draw_desktop()
         }
     }
 
+    if (show_confirm_dialog) {
+        int dialog_x = WIDTH / 2 - 150;
+        int dialog_y = HEIGHT / 2 - 50;
+        int dialog_width = 300;
+        int dialog_height = 100;
+        
+        for (int i = 0; i < HEIGHT; i += 4) {
+            for (int j = 0; j < WIDTH; j += 4) {
+                system_draw_rect(j, i, 2, 2, 0, 0, 0);
+            }
+        }
+        
+        system_draw_rect(dialog_x - 3, dialog_y - 3, dialog_width + 6, dialog_height + 6, THEME_TEXT_COLOR);
+        system_draw_rect(dialog_x, dialog_y, dialog_width, dialog_height, THEME_BACKGROUND_COLOR);
+        system_draw_text(dialog_x + 72, dialog_y + 35, "Are you sure?", 24, THEME_TEXT_COLOR);
+
+        system_draw_rect(dialog_x + 55 - 2, dialog_y + 60 - 2, 80 + 4, 25 + 4, THEME_TEXT_COLOR);
+        system_draw_rect(dialog_x + 55, dialog_y + 60, 80, 25, THEME_BACKGROUND_COLOR);
+        system_draw_text(dialog_x + 80, dialog_y + 78, "Yes", 20, THEME_TEXT_COLOR);
+
+        system_draw_rect(dialog_x + 165 - 2, dialog_y + 60 - 2, 80 + 4, 25 + 4, THEME_TEXT_COLOR);
+        system_draw_rect(dialog_x + 165, dialog_y + 60, 80, 25, THEME_BACKGROUND_COLOR);
+        system_draw_text(dialog_x + 193, dialog_y + 78, "No", 20, THEME_TEXT_COLOR);
+    }
+    
     draw_panel();
     draw_cursor();
 
@@ -312,12 +376,19 @@ void select_application()
     invalidate();
 }
 
-void terminate_desktop()
+void terminate_desktop(int result)
 {
-    desktop_running = 0;
+    if (result) {
+        desktop_running = 0;
+    }
 }
 
-void format_disk()
+void terminate_desktop_clicked()
+{
+    confirm_dialog(terminate_desktop);
+}
+
+void format_disk(int result)
 {
     if (!is_storage_initialized()) {
         if (write_magic_number(32768) != 0) {
@@ -338,11 +409,25 @@ void format_disk()
     }
 }
 
+void format_disk_clicked()
+{
+    confirm_dialog(format_disk);
+}
+
 #include <apps/info.h>
 #include <apps/files.h>
 #include <apps/editor.h>
 #include <apps/debug.h>
 #include <apps/runtime.h>
+
+void desktop_confirm_dialog(void (*callback)(int result))
+{
+    show_confirm_dialog = 1;
+    confirm_dialog_waiting = 1;
+    confirm_dialog_result = 0;
+    confirm_dialog_callback = callback;
+    invalidate();
+}
 
 void init_desktop()
 {
@@ -394,12 +479,12 @@ void init_desktop()
     add_menu((Menu) { .name = "System" });
     add_menu_item(&menus[0], (MenuItem) {
         .name = "Shutdown",
-        .action = terminate_desktop
+        .action = terminate_desktop_clicked
     });
     
     add_menu_item(&menus[0], (MenuItem) {
         .name = "Format disk",
-        .action = format_disk
+        .action = format_disk_clicked
     });
 
     add_menu((Menu) { .name = "Tools" });
