@@ -160,6 +160,33 @@ void bring_to_front(int app_index)
         }
     }
 
+    if (max_z > 100) {
+        int sorted_indices[9];
+        int visible_count = 0;
+        
+        for (int i = 0; i < application_count; i++) {
+            if (applications[i].visible) {
+                sorted_indices[visible_count++] = i;
+            }
+        }
+        
+        for (int i = 0; i < visible_count - 1; i++) {
+            for (int j = 0; j < visible_count - i - 1; j++) {
+                if (applications[sorted_indices[j]].z_order > applications[sorted_indices[j + 1]].z_order) {
+                    int temp = sorted_indices[j];
+                    sorted_indices[j] = sorted_indices[j + 1];
+                    sorted_indices[j + 1] = temp;
+                }
+            }
+        }
+        
+        for (int i = 0; i < visible_count; i++) {
+            applications[sorted_indices[i]].z_order = i;
+        }
+        
+        max_z = visible_count - 1;
+    }
+
     applications[app_index].z_order = max_z + 1;
 }
 
@@ -265,6 +292,14 @@ void mouse_click(int x, int y)
                     bring_to_front(clicked_app);
                     menus[2] = applications[selected_application].menu;
                     invalidate();
+                    return;
+                }
+                
+                if (selected_application != clicked_app) {
+                    selected_application = clicked_app;
+                    bring_to_front(clicked_app);
+                    menus[2] = applications[selected_application].menu;
+                    invalidate();
                 }
                 
                 if (x >= applications[clicked_app].x && x < applications[clicked_app].x + 30 &&
@@ -356,7 +391,14 @@ void draw_desktop()
         }
     }
 
-    for (int z = 0; z <= application_count + 10; z++) {
+    int max_z_order = 0;
+    for (int i = 0; i < application_count; i++) {
+        if (applications[i].visible && applications[i].z_order > max_z_order) {
+            max_z_order = applications[i].z_order;
+        }
+    }
+
+    for (int z = 0; z <= max_z_order; z++) {
         for (int i = 0; i < application_count; i++) {
             if (applications[i].visible == 1 && applications[i].z_order == z) {
                 int is_selected = (i == selected_application);
