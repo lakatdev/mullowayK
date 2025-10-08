@@ -45,6 +45,7 @@ typedef struct {
     int width;
     int height;
     char visible;
+    int z_order;
     Menu menu;
 } Application;
 
@@ -119,6 +120,7 @@ void add_application(Application app)
     applications[application_count].width = 400;
     applications[application_count].height = 300;
     applications[application_count].visible = 0;
+    applications[application_count].z_order = 0;
     memcpy(applications[application_count].menu.name, applications[application_count].name, 32);
     applications[application_count].menu.item_count = 0;
 
@@ -143,6 +145,22 @@ void add_menu_item(Menu* menu, MenuItem menu_item)
 
     menu->items[menu->item_count] = menu_item;
     menu->item_count++;
+}
+
+void bring_to_front(int app_index)
+{
+    if (app_index < 0 || app_index >= application_count) {
+        return;
+    }
+
+    int max_z = 0;
+    for (int i = 0; i < application_count; i++) {
+        if (applications[i].visible && applications[i].z_order > max_z) {
+            max_z = applications[i].z_order;
+        }
+    }
+
+    applications[app_index].z_order = max_z + 1;
 }
 
 void mouse_click(int x, int y)
@@ -219,36 +237,73 @@ void mouse_click(int x, int y)
     }
     else {
         if (application_count > 0) {
-            if (x >= applications[selected_application].x && x < applications[selected_application].x + applications[selected_application].width &&
-                y >= applications[selected_application].y && y < applications[selected_application].y + applications[selected_application].height) {
-                system_set_clip_region(applications[selected_application].x, applications[selected_application].y, applications[selected_application].width, applications[selected_application].height);
-                applications[selected_application].mouse_click(x - applications[selected_application].x, y - applications[selected_application].y);
-                system_reset_clip_region();
-                invalidate();
-                return;
+            int clicked_app = -1;
+            int max_z = -1;
+            
+            for (int i = 0; i < application_count; i++) {
+                if (applications[i].visible == 0) continue;
+                
+                int in_title = (x >= applications[i].x - 3 && 
+                               x < applications[i].x + applications[i].width + 3 &&
+                               y >= applications[i].y - 33 && 
+                               y < applications[i].y);
+                               
+                int in_window = (x >= applications[i].x && 
+                                x < applications[i].x + applications[i].width &&
+                                y >= applications[i].y && 
+                                y < applications[i].y + applications[i].height);
+                
+                if ((in_title || in_window) && applications[i].z_order > max_z) {
+                    clicked_app = i;
+                    max_z = applications[i].z_order;
+                }
             }
-            else if (x >= applications[selected_application].x && x < applications[selected_application].x + 30 &&
-                y >= applications[selected_application].y - 30 && y < applications[selected_application].y) {
-                applications[selected_application].on_close();
-                applications[selected_application].visible = 0;
-                selected_application = -1;
-                memset(menus[2].name, 0, 32);
-                memcpy(menus[2].name, "Desktop", 7);
-                menus[2].item_count = 0;
-                invalidate();
-                return;
-            }
-            else if (x >= applications[selected_application].x + 30 && x < applications[selected_application].x + 60 &&
-                y >= applications[selected_application].y - 30 && y < applications[selected_application].y) {
-                moving_application = selected_application;
-                move_offset_x = x - applications[selected_application].x;
-                move_offset_y = y - applications[selected_application].y;
-                return;
-            }
-            else if (x >= applications[selected_application].x + 60 && x < applications[selected_application].x + 90 &&
-                y >= applications[selected_application].y - 30 && y < applications[selected_application].y) {
-                resizing_application = selected_application;
-                set_mouse_pos(applications[selected_application].x + applications[selected_application].width, applications[selected_application].y + applications[selected_application].height);
+            
+            if (clicked_app != -1) {
+                if (selected_application != clicked_app) {
+                    selected_application = clicked_app;
+                    bring_to_front(clicked_app);
+                    menus[2] = applications[selected_application].menu;
+                    invalidate();
+                }
+                
+                if (x >= applications[clicked_app].x && x < applications[clicked_app].x + 30 &&
+                    y >= applications[clicked_app].y - 30 && y < applications[clicked_app].y) {
+                    applications[clicked_app].on_close();
+                    applications[clicked_app].visible = 0;
+                    selected_application = -1;
+                    memset(menus[2].name, 0, 32);
+                    memcpy(menus[2].name, "Desktop", 7);
+                    menus[2].item_count = 0;
+                    invalidate();
+                    return;
+                }
+                else if (x >= applications[clicked_app].x + 30 && x < applications[clicked_app].x + 60 &&
+                    y >= applications[clicked_app].y - 30 && y < applications[clicked_app].y) {
+                    moving_application = clicked_app;
+                    move_offset_x = x - applications[clicked_app].x;
+                    move_offset_y = y - applications[clicked_app].y;
+                    return;
+                }
+                else if (x >= applications[clicked_app].x + 60 && x < applications[clicked_app].x + 90 &&
+                    y >= applications[clicked_app].y - 30 && y < applications[clicked_app].y) {
+                    resizing_application = clicked_app;
+                    set_mouse_pos(applications[clicked_app].x + applications[clicked_app].width, 
+                                 applications[clicked_app].y + applications[clicked_app].height);
+                    return;
+                }
+                else if (x >= applications[clicked_app].x && 
+                        x < applications[clicked_app].x + applications[clicked_app].width &&
+                        y >= applications[clicked_app].y && 
+                        y < applications[clicked_app].y + applications[clicked_app].height) {
+                    system_set_clip_region(applications[clicked_app].x, applications[clicked_app].y, 
+                                          applications[clicked_app].width, applications[clicked_app].height);
+                    applications[clicked_app].mouse_click(x - applications[clicked_app].x, 
+                                                         y - applications[clicked_app].y);
+                    system_reset_clip_region();
+                    invalidate();
+                    return;
+                }
             }
         }
     }
@@ -301,28 +356,35 @@ void draw_desktop()
         }
     }
 
-    for (int i = 0; i < application_count; i++) {
-        if (applications[i].visible == 1 && i != selected_application) {
-            system_draw_rect(applications[i].x - 3, applications[i].y - 33, applications[i].width + 6, applications[i].height + 36, THEME_BACKGROUND_COLOR);
-            system_draw_text(applications[i].x + 5, applications[i].y - 10, applications[i].name, 24, THEME_TEXT_COLOR);
-
-            system_set_clip_region(applications[i].x, applications[i].y, applications[i].width, applications[i].height);
-            applications[i].draw();
-            system_reset_clip_region();
-        }
-    }
-    if (application_count > 0 && selected_application != -1) {
-        if (applications[selected_application].visible == 1) {
-            system_draw_rect(applications[selected_application].x - 3, applications[selected_application].y - 33, applications[selected_application].width + 6, applications[selected_application].height + 36, THEME_HIGHLIGHT_COLOR);
-            system_draw_text(applications[selected_application].x + 95, applications[selected_application].y - 10, applications[selected_application].name, 24, THEME_TEXT_COLOR);
-
-            system_draw_rect(applications[selected_application].x, applications[selected_application].y - 30, 30, 30, 255, 0, 0);
-            system_draw_rect(applications[selected_application].x + 30, applications[selected_application].y - 30, 30, 30, 0, 255, 0);
-            system_draw_rect(applications[selected_application].x + 60, applications[selected_application].y - 30, 30, 30, 0, 0, 255);
-
-            system_set_clip_region(applications[selected_application].x, applications[selected_application].y, applications[selected_application].width, applications[selected_application].height);
-            applications[selected_application].draw();
-            system_reset_clip_region();
+    for (int z = 0; z <= application_count + 10; z++) {
+        for (int i = 0; i < application_count; i++) {
+            if (applications[i].visible == 1 && applications[i].z_order == z) {
+                int is_selected = (i == selected_application);
+                
+                if (is_selected) {
+                    system_draw_rect(applications[i].x - 3, applications[i].y - 33, 
+                                   applications[i].width + 6, applications[i].height + 36, 
+                                   THEME_HIGHLIGHT_COLOR);
+                } else {
+                    system_draw_rect(applications[i].x - 3, applications[i].y - 33, 
+                                   applications[i].width + 6, applications[i].height + 36, 
+                                   THEME_BACKGROUND_COLOR);
+                }
+                
+                system_draw_text(applications[i].x + (is_selected ? 95 : 5), 
+                               applications[i].y - 10, applications[i].name, 24, THEME_TEXT_COLOR);
+                
+                if (is_selected) {
+                    system_draw_rect(applications[i].x, applications[i].y - 30, 30, 30, 255, 0, 0);
+                    system_draw_rect(applications[i].x + 30, applications[i].y - 30, 30, 30, 0, 255, 0);
+                    system_draw_rect(applications[i].x + 60, applications[i].y - 30, 30, 30, 0, 0, 255);
+                }
+                
+                system_set_clip_region(applications[i].x, applications[i].y, 
+                                      applications[i].width, applications[i].height);
+                applications[i].draw();
+                system_reset_clip_region();
+            }
         }
     }
 
@@ -373,6 +435,7 @@ void select_application()
         applications[selected_application].init();
     }
     applications[selected_application].visible = 1;
+    bring_to_front(selected_application);
     invalidate();
 }
 
