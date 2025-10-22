@@ -164,8 +164,9 @@ void app_files_run()
         return;
     }
     unsigned int size = 0;
-    read_from_storage(app_files_record_name_list[app_files_selected_record], app_editor_get_text_ptr(), &size);
-    app_runtime_load_code(app_editor_get_text_ptr());
+    read_from_storage(app_files_record_name_list[app_files_selected_record], interpreter_public_buffer, &size);
+    interpreter_public_buffer[size] = '\0';
+    app_runtime_load_code(interpreter_public_buffer);
 }
 
 void app_files_make_editable(int result)
