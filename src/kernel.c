@@ -110,6 +110,8 @@ char boot_messages[80 * 25] = {0};
 int boot_messages_len = 0;
 int current_line = 0;
 int current_column = 0;
+unsigned int system_memory_lower = 0;
+unsigned int system_memory_upper = 0;
 
 void printf(const char* str)
 {
@@ -193,6 +195,14 @@ void kernel_main(const void* multiboot_struct)
     init_gdt();
     enable_sse();
     unsigned int* header = (unsigned int*)(((unsigned int)multiboot_struct) + 8);
+    
+    // MEMORY INFO
+
+    unsigned int* mb_header = (unsigned int*)multiboot_struct;
+    if (mb_header[0] & 0x1) {
+        system_memory_lower = mb_header[1];
+        system_memory_upper = mb_header[2];
+    }
 
     // INTERNAL TIMER
 

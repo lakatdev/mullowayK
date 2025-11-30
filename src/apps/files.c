@@ -136,6 +136,7 @@ void app_files_edit()
     read_from_storage(app_files_record_name_list[app_files_selected_record], app_editor_get_text_ptr(), &size);
     app_editor_set_length(size);
     strncpy(app_editor_get_path_ptr(), app_files_record_name_list[app_files_selected_record], 256);
+    open_app("Editor");
 }
 
 void app_files_delete(int result)
@@ -167,6 +168,8 @@ void app_files_run()
     read_from_storage(app_files_record_name_list[app_files_selected_record], interpreter_public_buffer, &size);
     interpreter_public_buffer[size] = '\0';
     app_runtime_load_code(interpreter_public_buffer);
+    open_app("Runtime");
+    app_runtime_request_execute();
 }
 
 void app_files_make_editable(int result)

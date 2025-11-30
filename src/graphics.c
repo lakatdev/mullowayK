@@ -280,3 +280,4 @@ void system_get_clip_region(int* x, int* y, int* width, int* height)
     *width = clip_region_width;
     *height = clip_region_height;
 }
+

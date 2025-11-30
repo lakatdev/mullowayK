@@ -534,6 +534,24 @@ void desktop_confirm_dialog(void (*callback)(int result))
     invalidate();
 }
 
+void desktop_open_app(const char* app_name)
+{
+    for (int i = 0; i < application_count; i++) {
+        if (strcmp(applications[i].name, app_name) == 0) {
+            selected_application = i;
+            menus[2] = applications[selected_application].menu;
+            if (applications[selected_application].visible == 0) {
+                applications[selected_application].menu.item_count = 0;
+                applications[selected_application].init();
+            }
+            applications[selected_application].visible = 1;
+            bring_to_front(selected_application);
+            invalidate();
+            return;
+        }
+    }
+}
+
 void init_desktop()
 {
     add_application((Application) {

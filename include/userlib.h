@@ -24,5 +24,7 @@ int get_window_height();
 void confirm_dialog(void (*callback)(int result));
 
 void add_app_menu_item(MenuItem menu_item);
+void open_app(const char* app_name);
+unsigned int get_memory_mb();
 
 #endif

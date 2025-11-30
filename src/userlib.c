@@ -234,3 +234,17 @@ void confirm_dialog(void (*callback)(int result))
 {
     desktop_confirm_dialog(callback);
 }
+
+void open_app(const char* app_name)
+{
+    desktop_open_app(app_name);
+}
+
+extern unsigned int system_memory_lower;
+extern unsigned int system_memory_upper;
+
+unsigned int get_memory_mb()
+{
+    unsigned int total_kb = system_memory_lower + system_memory_upper;
+    return total_kb / 1024;
+}

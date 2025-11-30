@@ -357,6 +357,8 @@ void app_editor_run()
     }
     app_editor_buffer[app_editor_buffer_size] = '\0';
     app_runtime_load_code(app_editor_buffer);
+    open_app("Runtime");
+    app_runtime_request_execute();
 }
 
 void app_editor_init()
