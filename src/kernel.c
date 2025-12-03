@@ -8,6 +8,7 @@
 #include <desktop.h>
 #include <serial.h>
 #include <storage.h>
+#include <acpi.h>
 
 unsigned char mlogo_60[1125] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -187,6 +188,11 @@ void set_timer_freq(unsigned int divisor)
     outb(0x40, divisor >> 8);
 }
 
+void attempt_shutdown()
+{
+    acpi_poweroff();
+}
+
 void kernel_main(const void* multiboot_struct)
 {
     // INITIALIZE
@@ -213,6 +219,7 @@ void kernel_main(const void* multiboot_struct)
 
     unsigned char* buffer = (unsigned char*)header[20];
     init_graphics(buffer);
+    init_acpi();
     init_mouse();
     init_serial();
     init_storage(32768);
@@ -230,6 +237,10 @@ void kernel_main(const void* multiboot_struct)
     system_draw_text(10, 26, "It is now safe to turn off your computer.", 24, 0xdb, 0x81, 0x29);
     system_draw_text(WIDTH / 2 - 50, HEIGHT / 2 + 60, "Goodbye!", 24, 255, 255, 255);
     invalidate_buffer();
+
+    // DISABLE INTERRUPTS
+
     sleep(1000);
     outb(0x21, 0xFF);
+    attempt_shutdown();
 }

@@ -25,6 +25,7 @@ objects = obj/loader.o \
 		obj/pci.o \
 		obj/storage.o \
 		obj/exceptions.o \
+		obj/acpi.o \
 		obj/apps/debug.o \
 		obj/apps/editor.o \
 		obj/apps/files.o \
