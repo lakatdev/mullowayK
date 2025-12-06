@@ -169,7 +169,7 @@ void app_files_run()
     read_from_storage(app_files_record_name_list[app_files_selected_record], interpreter_public_buffer, &size);
     interpreter_public_buffer[size] = '\0';
     
-    int runtime_window_id = desktop_create_runtime_window();
+    int runtime_window_id = desktop_create_runtime_window(app_files_record_name_list[app_files_selected_record]);
     if (runtime_window_id >= 0) {
         app_runtime_set_window_id(runtime_window_id);
         app_runtime_load_code(interpreter_public_buffer);

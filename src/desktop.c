@@ -553,14 +553,23 @@ void desktop_confirm_dialog(void (*callback)(int result))
     invalidate();
 }
 
-int desktop_create_runtime_window()
+int desktop_create_runtime_window(const char* title)
 {
     if (application_count >= 9) {
         return -1;
     }
     
     Application new_app;
-    memcpy(new_app.name, "Runtime", 8);
+    if (title) {
+        int i = 0;
+        while (title[i] && i < 31) {
+            new_app.name[i] = title[i];
+            i++;
+        }
+        new_app.name[i] = '\0';
+    } else {
+        memcpy(new_app.name, "Runtime", 8);
+    }
     new_app.init = app_runtime_init;
     new_app.mouse_click = app_runtime_mouse;
     new_app.key_press = app_runtime_key;
@@ -589,7 +598,7 @@ int desktop_create_runtime_window()
 void desktop_open_app(const char* app_name)
 {
     if (strcmp(app_name, "Runtime") == 0) {
-        desktop_create_runtime_window();
+        desktop_create_runtime_window((void*)0);
         return;
     }
     
