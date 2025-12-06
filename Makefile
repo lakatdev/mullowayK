@@ -62,7 +62,7 @@ build: linker.ld $(objects)
 	rm -rf i386-pc
 	rm -rf iso
 run:
-	qemu-system-x86_64 -m 512 -serial stdio mullowayk.iso
+	qemu-system-x86_64 -m 400 -serial stdio mullowayk.iso
 
 clean:
 	rm -rf obj build mullowayk.iso
