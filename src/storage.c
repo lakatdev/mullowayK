@@ -665,12 +665,17 @@ int files_exists(const char* key)
 int write_magic_number(unsigned int lba)
 {
     printf("ATA: Formatting disk as FAT32...\n");
-   
+
     unsigned char mbr[512];
-    memset(mbr, 0, 512);
+    if (ata_lba_read_safe(0, 1, (unsigned short*)mbr) != 0) {
+        printf("ATA: Failed to read MBR, creating new one\n");
+        memset(mbr, 0, 512);
+    }
     
-    unsigned int partition_start = 2048;
+    unsigned int partition_start = 32768; // Back to original position
     unsigned int partition_size = 10000000;
+    
+    memset(mbr + 446, 0, 64);
     
     mbr[446] = 0x80;
     mbr[447] = 0x00;
@@ -699,7 +704,7 @@ int write_magic_number(unsigned int lba)
         return -1;
     }
     
-    printf("ATA: MBR created, writing FAT32 filesystem at LBA ");
+    printf("ATA: Partition table updated, writing FAT32 filesystem at LBA ");
     print_hex(partition_start);
     printf("...\n");
     
