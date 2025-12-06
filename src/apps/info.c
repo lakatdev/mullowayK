@@ -1,9 +1,10 @@
 #include <userlib.h>
+#include <apps/runtime_session.h>
 
 void app_info_draw()
 {
     draw_screen(THEME_BACKGROUND_COLOR);
-    draw_text(10, 30, "MullowayK 1.1.3 build 2025-12-03", 24, THEME_TEXT_COLOR);
+    draw_text(10, 30, "MullowayK 1.2.0 build 2025-12-06", 24, THEME_TEXT_COLOR);
     draw_text(10, 54, "Using Keszeg 4 interpreter.", 24, THEME_TEXT_COLOR);
     
     unsigned int mem_mb = get_memory_mb();
@@ -29,8 +30,33 @@ void app_info_draw()
         }
     }
     
+    // memory info
+
     draw_text(10, 78, "Available Memory: ", 24, THEME_TEXT_COLOR);
     draw_text(222, 78, &mem_str[start], 24, THEME_TEXT_COLOR);
+    
+    int instances_possible = runtime_session_get_max_count();
+    int active_sessions = runtime_session_get_active_count();
+    draw_text(10, 102, "Runtime Instances: ", 20, THEME_TEXT_COLOR);
+    char progress_bar[32];
+    progress_bar[0] = '[';
+    int pos = 1;
+    for (int i = 0; i < active_sessions && i < instances_possible; i++) {
+        progress_bar[pos++] = 'O';
+    }
+    
+    for (int i = active_sessions; i < instances_possible; i++) {
+        progress_bar[pos++] = '_';
+    }
+    
+    progress_bar[pos++] = ']';
+    progress_bar[pos++] = ' ';
+    progress_bar[pos++] = digits[active_sessions % 10];
+    progress_bar[pos++] = '/';
+    progress_bar[pos++] = digits[instances_possible % 10];
+    progress_bar[pos] = '\0';
+    
+    draw_text(202, 102, progress_bar, 20, THEME_TEXT_COLOR);
 }
 
 void app_info_key(char key)

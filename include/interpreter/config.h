@@ -1,9 +1,6 @@
 #ifndef INTERPRETER_CONFIG_H
 #define INTERPRETER_CONFIG_H
 
-// above interpreter
-#define INTERPRETER_MAX_INSTANCES 3
-
 // interpreter
 #define INTERPRETER_MAX_FUNCTIONS 256
 #define INTERPRETER_MAX_NAME 256

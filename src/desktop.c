@@ -6,6 +6,7 @@
 #include <interface.h>
 #include <userlib.h>
 #include <storage.h>
+#include <apps/runtime.h>
 
 unsigned char mlogo_26[] = {
     0x00, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x80, 0x00,
@@ -47,12 +48,15 @@ typedef struct {
     char visible;
     int z_order;
     Menu menu;
+    int window_id;
+    int is_runtime;
 } Application;
 
 unsigned char update_required = 1;
 Application applications[9];
 int application_count = 0;
 int selected_application = -1;
+int next_window_id = 0;
 Menu menus[3];
 int menu_count = 0;
 int selected_menu = -1;
@@ -103,6 +107,9 @@ void invalidate()
 void key_press(char key)
 {
     if (application_count > 0 && selected_application != -1) {
+        if (applications[selected_application].is_runtime) {
+            app_runtime_set_window_id(applications[selected_application].window_id);
+        }
         applications[selected_application].key_press(key);
         invalidate();
     }
@@ -121,6 +128,8 @@ void add_application(Application app)
     applications[application_count].height = 300;
     applications[application_count].visible = 0;
     applications[application_count].z_order = 0;
+    applications[application_count].window_id = next_window_id++;
+    applications[application_count].is_runtime = 0;
     memcpy(applications[application_count].menu.name, applications[application_count].name, 32);
     applications[application_count].menu.item_count = 0;
 
@@ -304,6 +313,9 @@ void mouse_click(int x, int y)
                 
                 if (x >= applications[clicked_app].x && x < applications[clicked_app].x + 30 &&
                     y >= applications[clicked_app].y - 30 && y < applications[clicked_app].y) {
+                    if (applications[clicked_app].is_runtime) {
+                        app_runtime_set_window_id(applications[clicked_app].window_id);
+                    }
                     applications[clicked_app].on_close();
                     applications[clicked_app].visible = 0;
                     selected_application = -1;
@@ -327,10 +339,13 @@ void mouse_click(int x, int y)
                                  applications[clicked_app].y + applications[clicked_app].height);
                     return;
                 }
-                else if (x >= applications[clicked_app].x && 
+                if (x >= applications[clicked_app].x && 
                         x < applications[clicked_app].x + applications[clicked_app].width &&
                         y >= applications[clicked_app].y && 
                         y < applications[clicked_app].y + applications[clicked_app].height) {
+                    if (applications[clicked_app].is_runtime) {
+                        app_runtime_set_window_id(applications[clicked_app].window_id);
+                    }
                     system_set_clip_region(applications[clicked_app].x, applications[clicked_app].y, 
                                           applications[clicked_app].width, applications[clicked_app].height);
                     applications[clicked_app].mouse_click(x - applications[clicked_app].x, 
@@ -420,6 +435,10 @@ void draw_desktop()
                     system_draw_rect(applications[i].x, applications[i].y - 30, 30, 30, 255, 0, 0);
                     system_draw_rect(applications[i].x + 30, applications[i].y - 30, 30, 30, 0, 255, 0);
                     system_draw_rect(applications[i].x + 60, applications[i].y - 30, 30, 30, 0, 0, 255);
+                }
+                
+                if (applications[i].is_runtime) {
+                    app_runtime_set_window_id(applications[i].window_id);
                 }
                 
                 system_set_clip_region(applications[i].x, applications[i].y, 
@@ -534,14 +553,64 @@ void desktop_confirm_dialog(void (*callback)(int result))
     invalidate();
 }
 
+int desktop_create_runtime_window(const char* title)
+{
+    if (application_count >= 9) {
+        return -1;
+    }
+    
+    Application new_app;
+    if (title) {
+        int i = 0;
+        while (title[i] && i < 31) {
+            new_app.name[i] = title[i];
+            i++;
+        }
+        new_app.name[i] = '\0';
+    } else {
+        memcpy(new_app.name, "Runtime", 8);
+    }
+    new_app.init = app_runtime_init;
+    new_app.mouse_click = app_runtime_mouse;
+    new_app.key_press = app_runtime_key;
+    new_app.draw = app_runtime_draw;
+    new_app.on_close = app_runtime_on_close;
+    new_app.is_runtime = 1;
+    
+    add_application(new_app);
+    
+    int new_index = application_count - 1;
+    applications[new_index].is_runtime = 1;
+    selected_application = new_index;
+    menus[2] = applications[selected_application].menu;
+    applications[selected_application].menu.item_count = 0;
+    
+    app_runtime_set_window_id(applications[new_index].window_id);
+    applications[selected_application].init();
+    
+    applications[selected_application].visible = 1;
+    bring_to_front(selected_application);
+    invalidate();
+    
+    return applications[new_index].window_id;
+}
+
 void desktop_open_app(const char* app_name)
 {
+    if (strcmp(app_name, "Runtime") == 0) {
+        desktop_create_runtime_window((void*)0);
+        return;
+    }
+    
     for (int i = 0; i < application_count; i++) {
         if (strcmp(applications[i].name, app_name) == 0) {
             selected_application = i;
             menus[2] = applications[selected_application].menu;
             if (applications[selected_application].visible == 0) {
                 applications[selected_application].menu.item_count = 0;
+                if (applications[i].is_runtime) {
+                    app_runtime_set_window_id(applications[i].window_id);
+                }
                 applications[selected_application].init();
             }
             applications[selected_application].visible = 1;
@@ -590,15 +659,6 @@ void init_desktop()
         .name = "Debug"
     });
 
-    add_application((Application) {
-        .init = app_runtime_init,
-        .mouse_click = app_runtime_mouse,
-        .key_press = app_runtime_key,
-        .draw = app_runtime_draw,
-        .on_close = app_runtime_on_close,
-        .name = "Runtime"
-    });
-
     add_menu((Menu) { .name = "System" });
     add_menu_item(&menus[0], (MenuItem) {
         .name = "Shutdown",
@@ -622,6 +682,13 @@ void init_desktop()
     add_menu((Menu) { .name = "Desktop" });
 
     while (desktop_running) {
+        for (int i = 0; i < application_count; i++) {
+            if (applications[i].visible && applications[i].is_runtime) {
+                app_runtime_set_window_id(applications[i].window_id);
+                app_runtime_process_deferred();
+            }
+        }
+        
         if (update_required) {
             draw_desktop();
             update_required = 0;

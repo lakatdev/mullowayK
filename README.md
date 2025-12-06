@@ -6,7 +6,7 @@ MullowayK is a hobby x86 operating system written from scratch in C. It features
 
 ### System Architecture
 - **32-bit x86 Operating System** - Boots via GRUB multiboot
-- **Fixed Memory Allocation** - Designed to consume exactly 500-512MB of RAM
+- **Dynamic Memory Management** - Interpreter instances allocated on-demand based on available RAM
 - **Custom Kernel** - Written from scratch with minimal dependencies
 - **Hardware Abstraction** - Direct hardware access and control
 
@@ -26,22 +26,25 @@ MullowayK is a hobby x86 operating system written from scratch in C. It features
 
 ### Programming Environment
 - **Keszeg 4 Language Interpreter** - Built-in interpreter for the Keszeg 4 custom programming language
-- **Multiple Interpreter Instances** - Supports up to two more subordinate interpreter sessions
+- **Dynamic Interpreter Instances** - Supports multiple concurrent runtime sessions with automatic memory allocation
+- **Session Management** - Each runtime window gets its own isolated interpreter session (main + subordinate)
 
 ### Desktop Environment
 - **Custom GUI** - Built-in desktop environment with simple window management
 - **Built-in tools**:
   - **Text Editor** - Text and code editor mainly for the Keszeg code
   - **File Manager** - Browse and manage files on the storage device
-  - **Runtime Environment** - Execute Keszeg 4 programs interactively
-  - **System Information** - Display system details and version info
+  - **Runtime Environment** - Execute Keszeg 4 programs interactively with dynamic session creation
+  - **System Information** - Display system details, memory usage, and available runtime instances
   - **Debug Tools** - Buffer for system wide debug messages
 
 ### Memory Management
-- **No allocation** - No system-wide malloc and free for stability
-- **Stack-based Function Calls** - Proper call stack management
+- **Dynamic Runtime Allocation** - Interpreter sessions allocated on-demand from high memory region
+- **Automatic Memory Checks** - System validates available memory before creating new runtime sessions
+- **Stack-based Function Calls** - Proper call stack management within interpreter
 - **Variable Scoping** - Local and reference parameter support
-- **Garbage Collection** - Automatic memory cleanup for interpreter
+- **Garbage Collection** - Automatic memory cleanup for interpreter variables
+- **Session Lifecycle** - Memory freed when runtime windows are closed
 
 ## Building and Running
 
@@ -64,7 +67,7 @@ make clean
 ```
 
 ### System Requirements
-- **RAM**: Exactly 512MB (system is designed for this fixed amount)
+- **RAM**: Minimum 64MB; 350MB for 1 interpreter session, and 600MB for 2.
 - **Storage**: IDE or other drive in legacy IDE mode
 - **Architecture**: x86 (32-bit)
 
@@ -86,9 +89,11 @@ make clean
 
 ### Applications
 - **Text Editor** (`src/apps/editor.c`) - Code editing with 16MB buffer
-- **Runtime** (`src/apps/runtime.c`) - Keszeg 4 interpreter interface
+- **Runtime** (`src/apps/runtime.c`) - Keszeg 4 interpreter interface with session management
+- **Runtime Sessions** (`src/apps/runtime_session.c`) - Dynamic memory allocation for interpreter instances
 - **File Manager** (`src/apps/files.c`) - File system browser
-- **System Info** (`src/apps/info.c`) - System information display
+- **System Info** (`src/apps/info.c`) - System information display with memory usage
+- **Runtime** (`src/apps/runtime.c`) - Keszeg 4 interpreter interface
 
 ### Keszeg 4 Interpreter
 - **Parser** (`src/interpreter/interpreter.c`) - Code parsing and tokenization
@@ -121,8 +126,8 @@ EF
 ```
 
 ## Version Information
-- **Version**: 1.1.3
-- **Build Date**: 2025-12-03
+- **Version**: 1.3.0
+- **Build Date**: 2025-12-06
 - **Interpreter**: [Keszeg 4](https://keszeglab.hu/keszeg4.html)
 - **Target Architecture**: x86 (32-bit)
 
