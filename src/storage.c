@@ -495,6 +495,8 @@ void write_to_storage(const char* key, const char* data, unsigned int size)
 void read_from_storage(const char* key, char* buffer, unsigned int* size)
 {
     *size = 0;
+    memset(buffer, 0, STORAGE_RECORD_SIZE);
+    
     if (!storage_initialized) {
         return;
     }
@@ -529,12 +531,22 @@ void read_from_storage(const char* key, char* buffer, unsigned int* size)
 
     unsigned int cluster = first_cluster;
     unsigned int bytes_read = 0;
+    unsigned int cluster_count = 0;
     
     while (cluster >= 2 && cluster < FAT32_EOC && bytes_read < file_size) {
         unsigned int lba = cluster_to_lba(cluster);
         
+        cluster_count++;
+        if (cluster_count > CLUSTERS_PER_FILE + 10) {
+            printf("ATA: Cluster chain too long, possible corruption\n");
+            *size = 0;
+            memset(buffer, 0, STORAGE_RECORD_SIZE);
+            return;
+        }
+        
         for (int s = 0; s < SECTORS_PER_CLUSTER && bytes_read < file_size; s++) {
             unsigned char sector[512];
+            memset(sector, 0, 512);
             
             ata_lba_read(lba + s, 1, (unsigned short*)sector);
             
@@ -547,10 +559,19 @@ void read_from_storage(const char* key, char* buffer, unsigned int* size)
             bytes_read += bytes_to_copy;
         }
         
-        cluster = read_fat_entry(cluster);
+        unsigned int next_cluster = read_fat_entry(cluster);
+        if (next_cluster >= 2 && next_cluster < FAT32_EOC && next_cluster == cluster) {
+            printf("ATA: Circular cluster chain detected\n");
+            break;
+        }
+        
+        cluster = next_cluster;
     }
 
-    *size = file_size;
+    *size = bytes_read;
+    if (bytes_read < STORAGE_RECORD_SIZE) {
+        buffer[bytes_read] = '\0';
+    }
 }
 
 void delete_from_storage(const char* key)
