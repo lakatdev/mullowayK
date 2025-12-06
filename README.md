@@ -14,7 +14,13 @@ MullowayK is a hobby x86 operating system written from scratch in C. It features
 - **IDE/ATA Drive Support** - Legacy IDE mode compatibility
 - **SATA Drive Support** - Works with SATA drives in legacy IDE mode
 - **PCI Bus Scanning** - Automatic detection of storage controllers
-- **File System** - Custom storage system for file management to be changed later
+- **FAT32 File System** - Modified FAT32 implementation with fixed 16MB file size
+  - Compatible with standard FAT32 for **reading** from other systems
+  - Files are always allocated as 16MB (fixed size for compatibility)
+  - No directory support (flat root directory only)
+  - **Not recommended for writing from other systems** due to fixed allocation constraints
+  - Dual FAT tables for redundancy
+  - Optimized with FAT cache for improved performance
 
 ### Hardware Features
 - **Graphics Support** - Custom VGA graphics driver with framebuffer

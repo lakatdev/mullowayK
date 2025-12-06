@@ -416,6 +416,9 @@ void runtime_session_execute(RuntimeSession* session)
         session->executing = 0;
         session->instance_stack_top = -1;
     }
+    else if (result > 0) {
+        session->executing = 1;
+    }
     else if (result < 0) {
         printf("Runtime: Execution failed.\n");
         session->error_code = 1;
@@ -516,6 +519,11 @@ int runtime_session_push_instance_from_file(RuntimeSession* session, const char*
     
     if (file_size == 0) {
         printf("Error: EXEC: File is empty.\n");
+        return -1;
+    }
+    
+    if (file_size >= STORAGE_RECORD_SIZE) {
+        printf("Error: EXEC: File size invalid.\n");
         return -1;
     }
     

@@ -52,8 +52,10 @@ typedef struct {
     int is_runtime;
 } Application;
 
+#define MAX_APPLICATIONS 32
+
 unsigned char update_required = 1;
-Application applications[9];
+Application applications[MAX_APPLICATIONS];
 int application_count = 0;
 int selected_application = -1;
 int next_window_id = 0;
@@ -117,7 +119,7 @@ void key_press(char key)
 
 void add_application(Application app)
 {
-    if (application_count >= 9) {
+    if (application_count >= MAX_APPLICATIONS) {
         return;
     }
 
@@ -315,9 +317,18 @@ void mouse_click(int x, int y)
                     y >= applications[clicked_app].y - 30 && y < applications[clicked_app].y) {
                     if (applications[clicked_app].is_runtime) {
                         app_runtime_set_window_id(applications[clicked_app].window_id);
+                        applications[clicked_app].on_close();
+                        
+                        for (int i = clicked_app; i < application_count - 1; i++) {
+                            applications[i] = applications[i + 1];
+                        }
+                        application_count--;
                     }
-                    applications[clicked_app].on_close();
-                    applications[clicked_app].visible = 0;
+                    else {
+                        applications[clicked_app].on_close();
+                        applications[clicked_app].visible = 0;
+                    }
+                    
                     selected_application = -1;
                     memset(menus[2].name, 0, 32);
                     memcpy(menus[2].name, "Desktop", 7);
@@ -514,22 +525,21 @@ void terminate_desktop_clicked()
 
 void format_disk(int result)
 {
-    if (!is_storage_initialized()) {
-        if (write_magic_number(32768) != 0) {
-            printf("System: Disk format failed!\n");
-            return;
-        }
-        printf("System: Disk formatted successfully.\n");
-        init_storage(32768);
-        if (is_storage_initialized()) {
-            printf("System: Storage reinitialized successfully!\n");
-        }
-        else {
-            printf("System: Storage reinitialization failed!\n");
-        }
+    printf("System: Formatting disk...\n");
+    
+    if (write_magic_number(32768) != 0) {
+        printf("System: Disk format failed!\n");
+        return;
+    }
+    
+    printf("System: Disk formatted successfully.\n");
+    init_storage(32768);
+    
+    if (is_storage_initialized()) {
+        printf("System: Storage initialized successfully!\n");
     }
     else {
-        printf("System: Storage already initialized\n");
+        printf("System: Storage initialization failed!\n");
     }
 }
 
@@ -555,7 +565,7 @@ void desktop_confirm_dialog(void (*callback)(int result))
 
 int desktop_create_runtime_window(const char* title)
 {
-    if (application_count >= 9) {
+    if (application_count >= MAX_APPLICATIONS) {
         return -1;
     }
     
@@ -619,6 +629,16 @@ void desktop_open_app(const char* app_name)
             return;
         }
     }
+}
+
+int get_application_count()
+{
+    return application_count;
+}
+
+int get_max_applications()
+{
+    return MAX_APPLICATIONS;
 }
 
 void init_desktop()

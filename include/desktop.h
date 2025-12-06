@@ -9,5 +9,7 @@ void invalidate();
 void desktop_confirm_dialog(void (*callback)(int result));
 void desktop_open_app(const char* app_name);
 int desktop_create_runtime_window(const char* title);
+int get_application_count();
+int get_max_applications();
 
 #endif

@@ -177,40 +177,6 @@ void app_files_run()
     }
 }
 
-void app_files_make_editable(int result)
-{
-    if (result) {
-        unsigned int file_size = 0;
-        read_from_storage(app_files_record_name_list[app_files_selected_record], interpreter_public_buffer, &file_size);
-        
-        if (file_size < sizeof(int)) {
-            printf("Warning: File too small to convert.\n");
-            return;
-        }
-        
-        int stored_size;
-        memcpy(&stored_size, interpreter_public_buffer, sizeof(int));
-        
-        if (stored_size >= 0 && stored_size == (int)(file_size - sizeof(int)) && stored_size < STORAGE_RECORD_SIZE) {
-            char* text_data = interpreter_public_buffer + sizeof(int);
-            unsigned int text_size = stored_size;
-            write_to_storage(app_files_record_name_list[app_files_selected_record], text_data, text_size);
-            printf("File converted to editable format.\n");
-        }
-        else {
-            printf("File is already editable or not a text file.\n");
-        }
-    }
-}
-
-void app_files_make_editable_clicked()
-{
-    if (app_files_selected_record < 0 || app_files_selected_record >= app_files_records_on_page) {
-        return;
-    }
-    confirm_dialog(app_files_make_editable);
-}
-
 void app_files_on_close()
 {
 
@@ -246,11 +212,6 @@ void app_files_init()
     add_app_menu_item((MenuItem) {
         .name = "Run",
         .action = app_files_run
-    });
-
-    add_app_menu_item((MenuItem) {
-        .name = "Make Editable",
-        .action = app_files_make_editable_clicked
     });
 
     add_app_menu_item((MenuItem) {
