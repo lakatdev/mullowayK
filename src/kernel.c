@@ -244,7 +244,7 @@ void kernel_main(const void* multiboot_struct)
 
     system_draw_screen(0, 0, 0);
     system_draw_image(WIDTH / 2 - 75, HEIGHT / 2 - 30, 150, 60, mlogo_60, 255, 255, 255);
-    system_draw_text(10, 26, "It is now safe to turn off your computer.", 24, 0xdb, 0x81, 0x29);
+    system_draw_text(10, 26, "Attempting shutdown...", 24, 0xdb, 0x81, 0x29);
     system_draw_text(WIDTH / 2 - 50, HEIGHT / 2 + 60, "Goodbye!", 24, 255, 255, 255);
     invalidate_buffer();
 

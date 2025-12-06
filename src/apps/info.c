@@ -5,7 +5,7 @@
 void app_info_draw()
 {
     draw_screen(THEME_BACKGROUND_COLOR);
-    draw_text(10, 30, "MullowayK 1.3.0 build 2025-12-06", 24, THEME_TEXT_COLOR);
+    draw_text(10, 30, "MullowayK 1.3.1 build 2025-12-06", 24, THEME_TEXT_COLOR);
     draw_text(10, 54, "Using Keszeg 4 interpreter.", 24, THEME_TEXT_COLOR);
     
     unsigned int mem_mb = get_memory_mb();
