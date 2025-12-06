@@ -3,6 +3,7 @@
 #include <keyboard.h>
 #include <storage.h>
 #include <apps/runtime.h>
+#include <desktop.h>
 
 typedef enum {
     EDITOR_FIELD_MAIN,
@@ -356,9 +357,13 @@ void app_editor_run()
         app_editor_buffer_size = sizeof(app_editor_buffer) - 1;
     }
     app_editor_buffer[app_editor_buffer_size] = '\0';
-    app_runtime_load_code(app_editor_buffer);
-    open_app("Runtime");
-    app_runtime_request_execute();
+    
+    int runtime_window_id = desktop_create_runtime_window();
+    if (runtime_window_id >= 0) {
+        app_runtime_set_window_id(runtime_window_id);
+        app_runtime_load_code(app_editor_buffer);
+        app_runtime_request_execute();
+    }
 }
 
 void app_editor_init()

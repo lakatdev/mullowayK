@@ -208,6 +208,16 @@ void kernel_main(const void* multiboot_struct)
     if (mb_header[0] & 0x1) {
         system_memory_lower = mb_header[1];
         system_memory_upper = mb_header[2];
+        printf("Memory detected: lower=");
+        print_hex(system_memory_lower);
+        printf(" upper=");
+        print_hex(system_memory_upper);
+        printf("\n");
+    }
+    else {
+        printf("Memory info not available from multiboot\n");
+        system_memory_lower = 640;
+        system_memory_upper = 130304; // 128MB - 1MB
     }
 
     // INTERNAL TIMER

@@ -17,5 +17,6 @@ void app_runtime_process_deferred();
 int app_runtime_push_instance_from_file(const char* filename);
 void app_runtime_request_input();
 void app_runtime_request_execute();
+void app_runtime_set_window_id(int window_id);
 
 #endif

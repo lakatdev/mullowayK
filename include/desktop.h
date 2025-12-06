@@ -8,5 +8,6 @@ void mouse_click(int x, int y);
 void invalidate();
 void desktop_confirm_dialog(void (*callback)(int result));
 void desktop_open_app(const char* app_name);
+int desktop_create_runtime_window();
 
 #endif

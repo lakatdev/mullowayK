@@ -31,6 +31,7 @@ objects = obj/loader.o \
 		obj/apps/files.o \
 		obj/apps/info.o \
 		obj/apps/runtime.o \
+		obj/apps/runtime_session.o \
 		obj/interpreter/interpreter.o \
 		obj/interpreter/instructions.o \
         obj/kernel.o

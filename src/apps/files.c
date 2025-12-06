@@ -5,6 +5,7 @@
 #include <apps/editor.h>
 #include <apps/runtime.h>
 #include <interpreter/interpreter.h>
+#include <desktop.h>
 
 #define FILES_ON_PAGE 10
 
@@ -167,9 +168,13 @@ void app_files_run()
     unsigned int size = 0;
     read_from_storage(app_files_record_name_list[app_files_selected_record], interpreter_public_buffer, &size);
     interpreter_public_buffer[size] = '\0';
-    app_runtime_load_code(interpreter_public_buffer);
-    open_app("Runtime");
-    app_runtime_request_execute();
+    
+    int runtime_window_id = desktop_create_runtime_window();
+    if (runtime_window_id >= 0) {
+        app_runtime_set_window_id(runtime_window_id);
+        app_runtime_load_code(interpreter_public_buffer);
+        app_runtime_request_execute();
+    }
 }
 
 void app_files_make_editable(int result)
