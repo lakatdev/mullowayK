@@ -1,10 +1,10 @@
 #!/bin/bash
 
 set -e
-DISK_SIZE_MB=512
+DISK_SIZE_MB=1024
 OUTPUT_IMAGE="mullowayk_disk.img"
 MOUNT_POINT="disk_mount"
-FAT_START_SECTOR=32768
+FAT_START_SECTOR=2048
 
 echo "Creating ${DISK_SIZE_MB}MB disk image with FAT32 partition..."
 

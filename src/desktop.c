@@ -527,13 +527,13 @@ void format_disk(int result)
 {
     printf("System: Formatting disk...\n");
     
-    if (write_magic_number(32768) != 0) {
+    if (write_magic_number(2048) != 0) {
         printf("System: Disk format failed!\n");
         return;
     }
     
     printf("System: Disk formatted successfully.\n");
-    init_storage(32768);
+    init_storage(2048);
     
     if (is_storage_initialized()) {
         printf("System: Storage initialized successfully!\n");

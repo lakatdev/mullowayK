@@ -72,10 +72,30 @@ BUILDING AND RUNNING
 ----------------------------------------------------------------------
 
 [ Prerequisites ]
-* GCC cross-compiler for x86 target
-* GNU Make
-* GRUB utilities for creating bootable ISO
-* QEMU for emulation (optional)
+
+Required packages (Debian/Ubuntu):
+
+    sudo apt install gcc-x86-64-linux-gnu binutils-x86-64-linux-gnu \
+        make grub-pc-bin grub-common qemu-system-x86 dosfstools
+
+Required packages (Arch Linux):
+
+    sudo pacman -S gcc make grub qemu-system-x86 dosfstools
+
+Package descriptions:
+* gcc-x86-64-linux-gnu - Cross-compiler for x86 target (provides
+  x86_64-linux-gnu-gcc, x86_64-linux-gnu-as, x86_64-linux-gnu-ld)
+* binutils-x86-64-linux-gnu - Binary utilities for cross-compilation
+* make - GNU Make build system
+* grub-pc-bin / grub-common - GRUB bootloader utilities (grub-install,
+  grub-mkrescue)
+* qemu-system-x86 - x86 system emulator (optional, for testing)
+* dosfstools - FAT32 filesystem tools (mkfs.vfat)
+
+Additional requirements:
+* sudo access - Required for loop device mounting and GRUB installation
+* sfdisk - Partition table utility (usually included with util-linux)
+* losetup - Loop device utility (usually included with util-linux)
 
 [ Build Instructions ]
 
