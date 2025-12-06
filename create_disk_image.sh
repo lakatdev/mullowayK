@@ -35,7 +35,7 @@ sudo partprobe "$LOOP_DEVICE" 2>/dev/null || true
 sleep 1
 
 echo "Formatting partition as FAT32..."
-sudo mkfs.vfat -F 32 -n "MULLOWAYK" -s 8 "${LOOP_DEVICE}p1" > /dev/null 2>&1
+sudo mkfs.vfat -F 32 -n "MWK-GIP!" -s 8 "${LOOP_DEVICE}p1" > /dev/null 2>&1
 
 mkdir -p "$MOUNT_POINT"
 sudo mount "${LOOP_DEVICE}p1" "$MOUNT_POINT"
