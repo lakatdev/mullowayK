@@ -1,5 +1,6 @@
 #include <userlib.h>
 #include <apps/runtime_session.h>
+#include <desktop.h>
 
 void app_info_draw()
 {
@@ -57,6 +58,31 @@ void app_info_draw()
     progress_bar[pos] = '\0';
     
     draw_text(202, 102, progress_bar, 20, THEME_TEXT_COLOR);
+    
+    int window_count = get_application_count();
+    int window_limit = get_max_applications();
+    
+    draw_text(10, 126, "Open Windows: ", 20, THEME_TEXT_COLOR);
+    
+    char window_info[48];
+    int w_pos = 0;
+    window_info[w_pos++] = digits[(window_count / 10) % 10];
+    window_info[w_pos++] = digits[window_count % 10];
+    window_info[w_pos++] = ' ';
+    window_info[w_pos++] = '/';
+    window_info[w_pos++] = ' ';
+    window_info[w_pos++] = digits[(window_limit / 10) % 10];
+    window_info[w_pos++] = digits[window_limit % 10];
+    window_info[w_pos++] = '\0';
+    
+    draw_text(160, 126, window_info, 20, THEME_TEXT_COLOR);
+    
+    if (window_count >= window_limit && instances_possible > active_sessions) {
+        draw_text(10, 150, "Limited by window limit (32 max).", 20, 255, 0, 0);
+    }
+    else if (active_sessions >= instances_possible) {
+        draw_text(10, 150, "Limited by memory.", 20, 255, 0, 0);
+    }
 }
 
 void app_info_key(char key)
