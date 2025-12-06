@@ -46,10 +46,14 @@ obj/%.o: src/%.s
 
 build: linker.ld $(objects)
 	$(LD) $(LDPARAMS) -T $< -o $@ $(objects)
+	@echo "Building FAT32 partition..."
+	chmod +x create_disk_image.sh
+	./create_disk_image.sh
+
+build-iso: build
+	@echo "Creating ISO (legacy method, no FAT32)..."
 	tar -xzf i386-pc.tar.gz
-	mkdir iso
-	mkdir iso/boot
-	mkdir iso/boot/grub
+	mkdir -p iso/boot/grub
 	cp build iso/boot/build
 	echo 'set timeout=0'					  > iso/boot/grub/grub.cfg
 	echo 'set default=0'					 >> iso/boot/grub/grub.cfg
@@ -59,10 +63,13 @@ build: linker.ld $(objects)
 	echo '  boot'							>> iso/boot/grub/grub.cfg
 	echo '}'								 >> iso/boot/grub/grub.cfg
 	grub-mkrescue --directory=i386-pc --output=mullowayk.iso iso --locales=""
-	rm -rf i386-pc
-	rm -rf iso
+	rm -rf i386-pc iso
+
 run:
-	qemu-system-x86_64 -m 400 -serial stdio mullowayk.iso
+	qemu-system-x86_64 -m 400 -serial stdio -hda mullowayk_disk.img
+
+run-iso:
+	qemu-system-x86_64 -m 400 -serial stdio -cdrom mullowayk.iso
 
 clean:
-	rm -rf obj build mullowayk.iso
+	rm -rf obj build mullowayk.iso mullowayk_disk.img disk_mount

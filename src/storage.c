@@ -236,6 +236,9 @@ void load_root_directory()
                 if (entries[e].attr & FAT32_ATTR_VOLUME_ID) {
                     continue;
                 }
+                if (entries[e].attr & FAT32_ATTR_DIRECTORY) {
+                    continue;
+                }
                 
                 memcpy(&root_dir_cache[entry_idx], &entries[e], sizeof(FAT32_DirEntry));
                 entry_idx++;
