@@ -342,6 +342,30 @@ void init_storage(unsigned int start_address)
     
     printf("ATA: Controller found. Initializing FAT32 storage.\n");
 
+    unsigned char mbr[512];
+    if (ata_lba_read_safe(0, 1, (unsigned short*)mbr) != 0) {
+        printf("ATA: Failed to read MBR. Storage disabled.\n");
+        return;
+    }
+    
+    if (mbr[510] != 0x55 || mbr[511] != 0xAA) {
+        printf("ATA: Invalid MBR signature. Storage disabled.\n");
+        return;
+    }
+    
+    unsigned int partition_start = mbr[454] | (mbr[455] << 8) | (mbr[456] << 16) | (mbr[457] << 24);
+    unsigned char partition_type = mbr[450];
+    
+    if (partition_type != 0x0C && partition_type != 0x0B) {
+        printf("ATA: No FAT32 partition found. Storage disabled.\n");
+        return;
+    }
+    
+    printf("ATA: Found FAT32 partition at LBA ");
+    print_hex(partition_start);
+    printf("\n");
+    first_lba = partition_start;
+
     unsigned char boot_sector[512];
     if (ata_lba_read_safe(first_lba, 1, (unsigned short*)boot_sector) != 0) {
         printf("ATA: Failed to read boot sector. Storage disabled.\n");
@@ -641,6 +665,43 @@ int files_exists(const char* key)
 int write_magic_number(unsigned int lba)
 {
     printf("ATA: Formatting disk as FAT32...\n");
+   
+    unsigned char mbr[512];
+    memset(mbr, 0, 512);
+    
+    unsigned int partition_start = 2048;
+    unsigned int partition_size = 10000000;
+    
+    mbr[446] = 0x80;
+    mbr[447] = 0x00;
+    mbr[448] = 0x01;
+    mbr[449] = 0x00;
+    mbr[450] = 0x0C;
+    mbr[451] = 0xFE;
+    mbr[452] = 0xFF;
+    mbr[453] = 0xFF;
+    
+    mbr[454] = partition_start & 0xFF;
+    mbr[455] = (partition_start >> 8) & 0xFF;
+    mbr[456] = (partition_start >> 16) & 0xFF;
+    mbr[457] = (partition_start >> 24) & 0xFF;
+    
+    mbr[458] = partition_size & 0xFF;
+    mbr[459] = (partition_size >> 8) & 0xFF;
+    mbr[460] = (partition_size >> 16) & 0xFF;
+    mbr[461] = (partition_size >> 24) & 0xFF;
+    
+    mbr[510] = 0x55;
+    mbr[511] = 0xAA;
+    
+    if (ata_lba_write_safe(0, 1, (unsigned short*)mbr) != 0) {
+        printf("ATA: Failed to write MBR\n");
+        return -1;
+    }
+    
+    printf("ATA: MBR created, writing FAT32 filesystem at LBA ");
+    print_hex(partition_start);
+    printf("...\n");
     
     unsigned int reserved_sectors = 32;
     unsigned int sectors_per_fat = 2048;
@@ -666,8 +727,8 @@ int write_magic_number(unsigned int lba)
     bs->fat_size_16 = 0;
     bs->sectors_per_track = 63;
     bs->num_heads = 255;
-    bs->hidden_sectors = 0;
-    bs->total_sectors_32 = 1000000;
+    bs->hidden_sectors = partition_start;
+    bs->total_sectors_32 = partition_size;
     bs->fat_size_32 = sectors_per_fat;
     bs->ext_flags = 0;
     bs->fs_version = 0;
@@ -683,7 +744,7 @@ int write_magic_number(unsigned int lba)
     boot_sector[510] = 0x55;
     boot_sector[511] = 0xAA;
     
-    if (ata_lba_write_safe(lba, 1, (unsigned short*)boot_sector) != 0) {
+    if (ata_lba_write_safe(partition_start, 1, (unsigned short*)boot_sector) != 0) {
         printf("ATA: Failed to write boot sector\n");
         return -1;
     }
@@ -698,17 +759,17 @@ int write_magic_number(unsigned int lba)
     fsinfo->next_free = 3;
     fsinfo->trail_signature = 0xAA550000;
     
-    if (ata_lba_write_safe(lba + 1, 1, (unsigned short*)fsinfo_sector) != 0) {
+    if (ata_lba_write_safe(partition_start + 1, 1, (unsigned short*)fsinfo_sector) != 0) {
         printf("ATA: Failed to write FSInfo sector\n");
         return -1;
     }
     
-    if (ata_lba_write_safe(lba + 6, 1, (unsigned short*)boot_sector) != 0) {
+    if (ata_lba_write_safe(partition_start + 6, 1, (unsigned short*)boot_sector) != 0) {
         printf("ATA: Failed to write backup boot sector\n");
         return -1;
     }
     
-    unsigned int fat1_lba = lba + reserved_sectors;
+    unsigned int fat1_lba = partition_start + reserved_sectors;
     unsigned int fat2_lba = fat1_lba + sectors_per_fat;
     
     unsigned char zero_sector[512];
