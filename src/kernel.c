@@ -114,6 +114,15 @@ int current_column = 0;
 unsigned int system_memory_lower = 0;
 unsigned int system_memory_upper = 0;
 
+typedef struct {
+    unsigned int size;
+    unsigned int base_low;
+    unsigned int base_high;
+    unsigned int len_low;
+    unsigned int len_high;
+    unsigned int type;
+} __attribute__((packed)) mmap_entry_t;
+
 void printf(const char* str)
 {
     for (int i = 0; str[i] != 0; i++) {
@@ -205,10 +214,41 @@ void kernel_main(const void* multiboot_struct)
     // MEMORY INFO
 
     unsigned int* mb_header = (unsigned int*)multiboot_struct;
-    if (mb_header[0] & 0x1) {
+    
+    if (mb_header[0] & (1 << 6)) {
+        unsigned int mmap_length = mb_header[11];
+        unsigned int mmap_addr = mb_header[12];
+        
+        printf("Using memory map for detection\n");
+        
+        unsigned int total_memory_kb = 0;
+        mmap_entry_t* mmap = (mmap_entry_t*)mmap_addr;
+        unsigned int mmap_end = mmap_addr + mmap_length;
+        
+        while ((unsigned int)mmap < mmap_end) {
+            if (mmap->type == 1) {
+                unsigned int region_kb = mmap->len_low / 1024;
+                if (mmap->len_high > 0) {
+                    region_kb = 0xFFFFFFFF / 1024;
+                }
+                total_memory_kb += region_kb;
+            }
+            mmap = (mmap_entry_t*)((unsigned int)mmap + mmap->size + 4);
+        }
+        
+        system_memory_lower = 640;
+        system_memory_upper = total_memory_kb - 1024;
+        
+        printf("Total usable RAM: ");
+        print_hex(total_memory_kb);
+        printf(" KB (");
+        print_hex(total_memory_kb / 1024);
+        printf(" MB)\n");
+    }
+    else if (mb_header[0] & 0x1) {
         system_memory_lower = mb_header[1];
         system_memory_upper = mb_header[2];
-        printf("Memory detected: lower=");
+        printf("Memory (basic): lower=");
         print_hex(system_memory_lower);
         printf(" upper=");
         print_hex(system_memory_upper);
