@@ -85,7 +85,7 @@ void app_info_draw()
         draw_text(10, 150, "Limited by memory.", 20, 255, 0, 0);
     }
     else if (active_sessions >= instances_possible && instances_possible >= MAX_RUNTIME_SESSIONS) {
-        draw_text(10, 150, "System design.", 20, 0, 255, 0);
+        draw_text(10, 150, "Limited by system design.", 20, 255, 0, 0);
     }
 }
 
