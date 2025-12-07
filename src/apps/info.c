@@ -37,6 +37,7 @@ void app_info_draw()
     draw_text(222, 78, &mem_str[start], 24, THEME_TEXT_COLOR);
     
     int instances_possible = runtime_session_get_max_count();
+
     int active_sessions = runtime_session_get_active_count();
     draw_text(10, 102, "Runtime Instances: ", 20, THEME_TEXT_COLOR);
     char progress_bar[32];
@@ -80,8 +81,11 @@ void app_info_draw()
     if (window_count >= window_limit && instances_possible > active_sessions) {
         draw_text(10, 150, "Limited by window limit (32 max).", 20, 255, 0, 0);
     }
-    else if (active_sessions >= instances_possible) {
+    else if (active_sessions >= instances_possible && instances_possible < MAX_RUNTIME_SESSIONS) {
         draw_text(10, 150, "Limited by memory.", 20, 255, 0, 0);
+    }
+    else if (active_sessions >= instances_possible && instances_possible >= MAX_RUNTIME_SESSIONS) {
+        draw_text(10, 150, "System design.", 20, 0, 255, 0);
     }
 }
 
