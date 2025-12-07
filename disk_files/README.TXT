@@ -180,7 +180,7 @@ Example Keszeg 4 program:
 VERSION INFORMATION
 ----------------------------------------------------------------------
 
-* Version: 2.0.1
+* Version: 2.1.0
 * Build Date: 2025-12-07
 * Interpreter: Keszeg 4
 * Target Architecture: x86 (32-bit)
