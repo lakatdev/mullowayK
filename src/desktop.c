@@ -553,6 +553,7 @@ void format_disk_clicked()
 #include <apps/editor.h>
 #include <apps/debug.h>
 #include <apps/runtime.h>
+#include <apps/image_viewer.h>
 
 void desktop_confirm_dialog(void (*callback)(int result))
 {
@@ -677,6 +678,15 @@ void init_desktop()
         .draw = app_debug_draw,
         .on_close = app_debug_on_close,
         .name = "Debug"
+    });
+
+    add_application((Application) {
+        .init = app_image_viewer_init,
+        .mouse_click = app_image_viewer_mouse,
+        .key_press = app_image_viewer_key,
+        .draw = app_image_viewer_draw,
+        .on_close = app_image_viewer_on_close,
+        .name = "Image Viewer"
     });
 
     add_menu((Menu) { .name = "System" });

@@ -32,6 +32,7 @@ objects = obj/loader.o \
 		obj/apps/info.o \
 		obj/apps/runtime.o \
 		obj/apps/runtime_session.o \
+		obj/apps/image_viewer.o \
 		obj/interpreter/interpreter.o \
 		obj/interpreter/instructions.o \
         obj/kernel.o
@@ -66,7 +67,7 @@ build-iso: build
 	rm -rf i386-pc iso
 
 run:
-	qemu-system-x86_64 -m 400 -serial stdio -hda mullowayk_disk.img
+	qemu-system-x86_64 -m 128 -serial stdio -hda mullowayk_disk.img
 
 run-iso:
 	qemu-system-x86_64 -m 400 -serial stdio -cdrom mullowayk.iso

@@ -4,6 +4,7 @@
 #include <interface.h>
 #include <apps/editor.h>
 #include <apps/runtime.h>
+#include <apps/image_viewer.h>
 #include <interpreter/interpreter.h>
 #include <desktop.h>
 
@@ -177,6 +178,15 @@ void app_files_run()
     }
 }
 
+void app_files_view_image()
+{
+    if (app_files_selected_record < 0 || app_files_selected_record >= app_files_records_on_page) {
+        return;
+    }
+    app_image_viewer_display_bmp(app_files_record_name_list[app_files_selected_record]);
+    open_app("Image Viewer");
+}
+
 void app_files_on_close()
 {
 
@@ -212,6 +222,11 @@ void app_files_init()
     add_app_menu_item((MenuItem) {
         .name = "Run",
         .action = app_files_run
+    });
+
+    add_app_menu_item((MenuItem) {
+        .name = "View Image",
+        .action = app_files_view_image
     });
 
     add_app_menu_item((MenuItem) {
