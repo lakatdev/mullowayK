@@ -444,13 +444,34 @@ void draw_desktop()
                                    THEME_BACKGROUND_COLOR);
                 }
                 
-                system_draw_text(applications[i].x + (is_selected ? 95 : 5), 
-                               applications[i].y - 10, applications[i].name, 24, THEME_TEXT_COLOR);
+                int text_offset = is_selected ? 95 : 5;
+                int available_width = applications[i].width - text_offset;
+                int max_chars = available_width / 12;
+                if (max_chars > 0) {
+                    int name_len = strlen(applications[i].name);
+                    if (name_len > max_chars) {
+                        char truncated[32];
+                        int j;
+                        for (j = 0; j < max_chars && j < 31; j++) {
+                            truncated[j] = applications[i].name[j];
+                        }
+                        truncated[j] = '\0';
+                        system_draw_text(applications[i].x + text_offset, 
+                                       applications[i].y - 10, truncated, 24, THEME_TEXT_COLOR);
+                    }
+                    else {
+                        system_draw_text(applications[i].x + text_offset, 
+                                       applications[i].y - 10, applications[i].name, 24, THEME_TEXT_COLOR);
+                    }
+                }
                 
                 if (is_selected) {
-                    system_draw_rect(applications[i].x, applications[i].y - 30, 30, 30, 255, 0, 0);
-                    system_draw_rect(applications[i].x + 30, applications[i].y - 30, 30, 30, 0, 255, 0);
-                    system_draw_rect(applications[i].x + 60, applications[i].y - 30, 30, 30, 0, 0, 255);
+                    int buttons_width = 90;
+                    if (applications[i].width >= buttons_width) {
+                        system_draw_rect(applications[i].x, applications[i].y - 30, 30, 30, 255, 0, 0);
+                        system_draw_rect(applications[i].x + 30, applications[i].y - 30, 30, 30, 0, 255, 0);
+                        system_draw_rect(applications[i].x + 60, applications[i].y - 30, 30, 30, 0, 0, 255);
+                    }
                 }
                 
                 if (applications[i].is_runtime) {
