@@ -63,7 +63,7 @@ void app_info_draw()
     int window_count = get_application_count();
     int window_limit = get_max_applications();
     
-    draw_text(10, 126, "Open Windows: ", 20, THEME_TEXT_COLOR);
+    draw_text(10, 126, "Open windows: ", 20, THEME_TEXT_COLOR);
     
     char window_info[48];
     int w_pos = 0;
