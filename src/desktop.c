@@ -264,13 +264,18 @@ void mouse_click(int x, int y)
 
     int previous_selected_menu = selected_menu;
     selected_menu = -1;
-    if (y <= 30 && x >= 100 && x < 100 + menu_count * 100) {
-        int menu = (x - 100) / 100;
-        if (menu >= 0 && menu < menu_count) {
-            if (menu != previous_selected_menu) {
-                selected_menu = menu;
+    if (y <= 30 && x >= 100) {
+        int current_x = 100;
+        for (int i = 0; i < menu_count; i++) {
+            int menu_width = (strlen(menus[i].name) + 1) * 12;
+            if (x >= current_x && x < current_x + menu_width) {
+                if (i != previous_selected_menu) {
+                    selected_menu = i;
+                }
+                invalidate();
+                break;
             }
-            invalidate();
+            current_x += 100;
         }
     }
     else {
@@ -377,7 +382,7 @@ void draw_panel()
 
     for (int i = 0; i < menu_count; i++) {
         if (i == selected_menu) {
-            system_draw_rect((i + 1) * 100, 0, 100, 30, THEME_HIGHLIGHT_COLOR);
+            system_draw_line((i + 1) * 100, 25, (i + 1) * 100 + (strlen(menus[i].name) + 1) * 12, 25, 5, THEME_HIGHLIGHT_COLOR);
             system_draw_rect((i + 1) * 100 - 3, 27, 206, menus[i].item_count * 30 + 6, THEME_TEXT_COLOR);
             for (int j = 0; j < menus[i].item_count; j++) {
                 system_draw_rect((i + 1) * 100, 30 + j * 30, 200, 30, THEME_BACKGROUND_COLOR);
