@@ -51,6 +51,8 @@ FEATURES
   - File Manager - Browse and manage files on the storage device
   - Runtime Environment - Execute Keszeg 4 programs interactively with
     dynamic session creation
+  - Image Viewer - View BMP images (24-bit uncompressed, up to 5.3M
+    pixels)
   - System Information - Display system details, memory usage, and
     available runtime instances
   - Debug Tools - Buffer for system wide debug messages

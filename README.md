@@ -2,6 +2,17 @@
 
 MullowayK is a hobby x86 operating system written from scratch in C. It features a custom desktop environment with built-in tools and includes an interpreter for the Keszeg 4 programming language.
 
+## Screenshots
+
+![System Information](screenshots/info.png)
+*System Information window*
+
+![Text Editor](screenshots/editor.png)
+*Built-in text editor with Keszeg 4 code*
+
+![Image Viewer](screenshots/image-viewer.png)
+*BMP image viewer displaying a 24-bit color image*
+
 ## Features
 
 ### System Architecture
@@ -39,6 +50,7 @@ MullowayK is a hobby x86 operating system written from scratch in C. It features
   - **Text Editor** - Text and code editor mainly for the Keszeg code
   - **File Manager** - Browse and manage files on the storage device
   - **Runtime Environment** - Execute Keszeg 4 programs interactively with dynamic session creation
+  - **Image Viewer** - View BMP images (24-bit uncompressed, up to 5.3M pixels)
   - **System Information** - Display system details, memory usage, and available runtime instances
   - **Debug Tools** - Buffer for system wide debug messages
 
@@ -115,8 +127,9 @@ make clean
 - **Runtime** (`src/apps/runtime.c`) - Keszeg 4 interpreter interface with session management
 - **Runtime Sessions** (`src/apps/runtime_session.c`) - Dynamic memory allocation for interpreter instances
 - **File Manager** (`src/apps/files.c`) - File system browser
+- **Image Viewer** (`src/apps/image_viewer.c`) - BMP image viewer with 24-bit color support
 - **System Info** (`src/apps/info.c`) - System information display with memory usage
-- **Runtime** (`src/apps/runtime.c`) - Keszeg 4 interpreter interface
+- **Debug Tools** (`src/apps/debug.c`) - System-wide debug message buffer
 
 ### Keszeg 4 Interpreter
 - **Parser** (`src/interpreter/interpreter.c`) - Code parsing and tokenization
