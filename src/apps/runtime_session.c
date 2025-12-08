@@ -43,6 +43,8 @@ static void free_session_memory(RuntimeSession* session)
     }
 }
 
+extern unsigned int _kernel_end;
+
 void runtime_session_pool_init()
 {
     if (session_pool_initialized) return;
@@ -58,16 +60,24 @@ void runtime_session_pool_init()
     
     unsigned int base_offset = (available_bytes * 25) / 100;
     
+    unsigned int kernel_end_addr = (unsigned int)&_kernel_end;
+    unsigned int safe_start = kernel_end_addr + (1024 * 1024); // 1MB padding
+    print_hex(kernel_end_addr);
+
+    if (base_offset < safe_start) {
+        base_offset = safe_start;
+    }
+
     if (base_offset < 20 * 1024 * 1024) {
         base_offset = 20 * 1024 * 1024;
     }
     
     if (base_offset + session_memory_size + (5 * 1024 * 1024) > available_bytes) {
         if (session_memory_size + (5 * 1024 * 1024) < available_bytes) {
-            base_offset = available_bytes - session_memory_size - (5 * 1024 * 1024);
-        }
-        else {
-            base_offset = 20 * 1024 * 1024;
+            unsigned int alternative = available_bytes - session_memory_size - (5 * 1024 * 1024);
+            if (alternative > safe_start) {
+                base_offset = alternative;
+            }
         }
     }
     
