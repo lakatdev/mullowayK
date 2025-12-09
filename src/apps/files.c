@@ -121,14 +121,6 @@ void app_files_refresh()
     app_files_read_files();
 }
 
-void TEST_app_files_write_files()
-{
-    write_to_storage("image.bmp", "this is an image", 17);
-    write_to_storage("text.txt", "this is a text", 16);
-    write_to_storage("video.mp4", "this is a video", 16);
-    write_to_storage("program.k", "this is an application", 23);
-}
-
 void app_files_edit()
 {
     if (app_files_selected_record < 0 || app_files_selected_record >= app_files_records_on_page) {
@@ -232,10 +224,5 @@ void app_files_init()
     add_app_menu_item((MenuItem) {
         .name = "Delete",
         .action = app_files_delete_clicked
-    });
-
-    add_app_menu_item((MenuItem) {
-        .name = "[TEST] Write",
-        .action = TEST_app_files_write_files
     });
 }
