@@ -358,9 +358,7 @@ void irq0_handler(void)
         update_video();
     }
 
-    if ((unsigned int)uptime % 5 == 0) {
-        app_runtime_process_deferred();
-    }
+
 
     if (timer_ticks > 0) {
         timer_ticks--;
