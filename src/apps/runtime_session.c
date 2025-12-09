@@ -62,7 +62,6 @@ void runtime_session_pool_init()
     
     unsigned int kernel_end_addr = (unsigned int)&_kernel_end;
     unsigned int safe_start = kernel_end_addr + (1024 * 1024); // 1MB padding
-    print_hex(kernel_end_addr);
 
     if (base_offset < safe_start) {
         base_offset = safe_start;
