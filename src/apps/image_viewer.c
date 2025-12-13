@@ -1,5 +1,6 @@
 #include <userlib.h>
 #include <storage.h>
+#include <interface.h>
 
 typedef struct __attribute__((packed)) {
     unsigned short type;
