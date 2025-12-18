@@ -162,8 +162,8 @@ EF
 ```
 
 ## Version Information
-- **Version**: 2.1.1
-- **Build Date**: 2025-12-09
+- **Version**: 2.1.2
+- **Build Date**: 2025-12-19
 - **Interpreter**: [Keszeg 4](https://keszeglab.hu/keszeg4.html)
 - **Target Architecture**: x86 (32-bit)
 

@@ -368,8 +368,35 @@ void interpreter_declare_variable(Interpreter_Instance* instance, const char* na
     
     for (int i = 0; i < current_frame->local_var_count; i++) {
         if (interpreter_ci_strcmp(current_frame->local_vars[i].name, name) == 0) {
-            if ( instance->stack_pointer <= current_frame->local_vars[i].declaration_line) {
-                return;
+            if (instance->execution_position == current_frame->local_vars[i].declaration_line) {
+                Interpreter_Variable* var = &current_frame->local_vars[i];
+                switch (type) {
+                    case TYPE_INT:
+                        var->value.i = 0;
+                        break;
+                    case TYPE_FLOAT:
+                        var->value.f = 0.0f;
+                        break;
+                    case TYPE_BYTE:
+                        var->value.b = 0;
+                        break;
+                    case TYPE_STRING:
+                        var->value.string.data[0] = '\0';
+                        var->value.string.size = 0;
+                        break;
+                    case TYPE_IARRAY:
+                        for (int j = 0; j < INTERPRETER_MAX_ARRAY_SIZE; j++) {
+                            var->value.iarray.data[j] = 0;
+                        }
+                        var->value.iarray.size = 0;
+                        break;
+                    case TYPE_FARRAY:
+                        for (int j = 0; j < INTERPRETER_MAX_ARRAY_SIZE; j++) {
+                            var->value.farray.data[j] = 0.0f;
+                        }
+                        var->value.farray.size = 0;
+                        break;
+                }
             }
             else {
                 printf("Error: Variable already declared in current scope\n");
