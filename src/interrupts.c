@@ -7,6 +7,7 @@
 #include <keyboard.h>
 #include <exceptions.h>
 #include <apps/runtime.h>
+#include <usb.h>
 
 InterruptDescriptor idt[256];
 
@@ -357,8 +358,10 @@ void irq0_handler(void)
     if ((unsigned int)uptime % 15 == 0) {
         update_video();
     }
-
-
+    
+    if ((unsigned int)uptime % 10 == 0) {
+        usb_poll();
+    }
 
     if (timer_ticks > 0) {
         timer_ticks--;

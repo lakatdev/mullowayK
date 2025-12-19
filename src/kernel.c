@@ -9,6 +9,7 @@
 #include <serial.h>
 #include <storage.h>
 #include <acpi.h>
+#include <usb.h>
 
 unsigned char mlogo_60[1125] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -272,6 +273,7 @@ void kernel_main(const void* multiboot_struct)
     init_acpi();
     init_mouse();
     init_serial();
+    init_usb();
     init_storage(2048);
 
     system_draw_screen(0, 0, 0);

@@ -26,6 +26,7 @@ objects = obj/loader.o \
 		obj/storage.o \
 		obj/exceptions.o \
 		obj/acpi.o \
+		obj/usb.o \
 		obj/apps/debug.o \
 		obj/apps/editor.o \
 		obj/apps/files.o \
@@ -68,6 +69,9 @@ build-iso: build
 
 run:
 	qemu-system-x86_64 -m 400 -serial stdio -hda mullowayk_disk.img
+
+run-usb:
+	qemu-system-x86_64 -drive file=mullowayk_disk.img,format=raw -m 400 -device piix3-usb-uhci,id=uhci -device usb-kbd,bus=uhci.0,port=1 -device usb-mouse,bus=uhci.0,port=2
 
 run-iso:
 	qemu-system-x86_64 -m 400 -serial stdio -cdrom mullowayk.iso

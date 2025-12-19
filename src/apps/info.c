@@ -1,11 +1,12 @@
 #include <userlib.h>
 #include <apps/runtime_session.h>
 #include <desktop.h>
+#include <usb.h>
 
 void app_info_draw()
 {
     draw_screen(THEME_BACKGROUND_COLOR);
-    draw_text(10, 30, "MullowayK 2.1.2 build 2025-12-19", 24, THEME_TEXT_COLOR);
+    draw_text(10, 30, "MullowayK 2.2.0 build 2025-12-19", 24, THEME_TEXT_COLOR);
     draw_text(10, 54, "Using Keszeg 4 interpreter.", 24, THEME_TEXT_COLOR);
     
     unsigned int mem_mb = get_memory_mb();
@@ -87,6 +88,20 @@ void app_info_draw()
     else if (active_sessions >= instances_possible && instances_possible >= MAX_RUNTIME_SESSIONS) {
         draw_text(10, 150, "Limited by system design.", 20, 255, 0, 0);
     }
+
+    //USB device info
+
+    draw_text(10, 180, "USB devices present:", 20, THEME_TEXT_COLOR);
+    draw_text(30, 200, "Mouse", 20, THEME_TEXT_COLOR);
+    draw_text(30, 220, "Keyboard", 20, THEME_TEXT_COLOR);
+    draw_text(30, 240, "Serial device", 20, THEME_TEXT_COLOR);
+
+    if (usb_mouse_present()) { draw_rect(10, 185, 10, 20, 0, 255, 0); }
+    else { draw_rect(10, 185, 10, 20, 255, 0, 0); }
+    if (usb_keyboard_present()) { draw_rect(10, 205, 10, 20, 0, 255, 0); }
+    else { draw_rect(10, 205, 10, 20, 255, 0, 0); }
+    if (usb_serial_present()) { draw_rect(10, 225, 10, 20, 0, 255, 0); }
+    else { draw_rect(10, 225, 10, 20, 255, 0, 0); }
 }
 
 void app_info_key(char key)
