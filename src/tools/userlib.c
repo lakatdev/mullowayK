@@ -1,6 +1,6 @@
 #include <tools/graphics.h>
 #include <tools/math.h>
-#include <fonts.mfp.h>
+#include <resources/fonts.mfp.h>
 #include <system/memory.h>
 #include <tools/userlib.h>
 #include <drivers/serial.h>

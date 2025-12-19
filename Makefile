@@ -12,7 +12,7 @@ objects = obj/system/loader.o \
 		obj/system/load_idt.o \
 		obj/system/sse.o \
 		obj/tools/graphics.o \
-		obj/fonts.mfp.o \
+		obj/resources/fonts.mfp.o \
 		obj/system/interrupts.o \
 		obj/system/rtc.o \
 		obj/drivers/keyboard.o \

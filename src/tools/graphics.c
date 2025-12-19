@@ -1,7 +1,7 @@
 #include <system/interface.h>
 #include <tools/graphics.h>
 #include <system/memory.h>
-#include <fonts.mfp.h>
+#include <resources/fonts.mfp.h>
 #include <tools/math.h>
 
 unsigned char* video;
