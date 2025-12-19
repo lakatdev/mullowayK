@@ -1,10 +1,10 @@
-#include <ata.h>
-#include <storage.h>
-#include <memory.h>
-#include <interrupts.h>
-#include <interface.h>
-#include <port.h>
-#include <pci.h>
+#include <drivers/ata.h>
+#include <system/storage.h>
+#include <system/memory.h>
+#include <system/interrupts.h>
+#include <system/interface.h>
+#include <system/port.h>
+#include <drivers/pci.h>
 
 // filesystem state
 unsigned int first_lba = 0;

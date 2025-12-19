@@ -1,8 +1,8 @@
-#include <acpi.h>
-#include <port.h>
-#include <memory.h>
-#include <interface.h>
-#include <interrupts.h>
+#include <system/acpi.h>
+#include <system/port.h>
+#include <system/memory.h>
+#include <system/interface.h>
+#include <system/interrupts.h>
 
 unsigned int *smi_cmd;
 unsigned char acpi_enable_cmd;

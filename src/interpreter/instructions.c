@@ -1,12 +1,12 @@
 #include <interpreter/instructions.h>
 #include <interpreter/interpreter.h>
 #include <interpreter/instance.h>
-#include <interrupts.h>
-#include <interface.h>
-#include <memory.h>
-#include <storage.h>
+#include <system/interrupts.h>
+#include <system/interface.h>
+#include <system/memory.h>
+#include <system/storage.h>
 #include <apps/runtime.h>
-#include <serial.h>
+#include <drivers/serial.h>
 
 // Usually provided by the standard library.
 

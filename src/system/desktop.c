@@ -1,11 +1,11 @@
-#include <graphics.h>
-#include <mouse.h>
-#include <rtc.h>
-#include <interrupts.h>
-#include <memory.h>
-#include <interface.h>
-#include <userlib.h>
-#include <storage.h>
+#include <tools/graphics.h>
+#include <drivers/mouse.h>
+#include <system/rtc.h>
+#include <system/interrupts.h>
+#include <system/memory.h>
+#include <system/interface.h>
+#include <tools/userlib.h>
+#include <system/storage.h>
 #include <apps/runtime.h>
 
 unsigned char mlogo_26[] = {

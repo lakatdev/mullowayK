@@ -1,12 +1,12 @@
-#include <usb.h>
-#include <port.h>
-#include <interface.h>
-#include <keyboard.h>
-#include <desktop.h>
-#include <graphics.h>
-#include <memory.h>
-#include <serial.h>
-#include <pci.h>
+#include <drivers/usb.h>
+#include <system/port.h>
+#include <system/interface.h>
+#include <drivers/keyboard.h>
+#include <system/desktop.h>
+#include <tools/graphics.h>
+#include <system/memory.h>
+#include <drivers/serial.h>
+#include <drivers/pci.h>
 
 #define UHCI_CMD       0x00
 #define UHCI_STS       0x02

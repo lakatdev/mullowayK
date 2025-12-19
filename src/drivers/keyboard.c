@@ -1,5 +1,5 @@
-#include <desktop.h>
-#include <keyboard.h>
+#include <system/desktop.h>
+#include <drivers/keyboard.h>
 
 unsigned char shift = 0;
 

@@ -1,7 +1,7 @@
-#include <userlib.h>
+#include <tools/userlib.h>
 #include <apps/runtime_session.h>
-#include <desktop.h>
-#include <usb.h>
+#include <system/desktop.h>
+#include <drivers/usb.h>
 
 void app_info_draw()
 {

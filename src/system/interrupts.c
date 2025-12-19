@@ -1,13 +1,13 @@
-#include <interrupts.h>
-#include <interface.h>
-#include <port.h>
-#include <graphics.h>
-#include <mouse.h>
-#include <desktop.h>
-#include <keyboard.h>
-#include <exceptions.h>
+#include <system/interrupts.h>
+#include <system/interface.h>
+#include <system/port.h>
+#include <tools/graphics.h>
+#include <drivers/mouse.h>
+#include <system/desktop.h>
+#include <drivers/keyboard.h>
+#include <system/exceptions.h>
 #include <apps/runtime.h>
-#include <usb.h>
+#include <drivers/usb.h>
 
 InterruptDescriptor idt[256];
 

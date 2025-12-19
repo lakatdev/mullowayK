@@ -1,10 +1,10 @@
 #include <apps/runtime_session.h>
-#include <userlib.h>
-#include <rtc.h>
-#include <storage.h>
-#include <interface.h>
-#include <memory.h>
-#include <desktop.h>
+#include <tools/userlib.h>
+#include <system/rtc.h>
+#include <system/storage.h>
+#include <system/interface.h>
+#include <system/memory.h>
+#include <system/desktop.h>
 
 static RuntimeSession* session_slots[MAX_RUNTIME_SESSIONS] = {0};
 static int session_pool_initialized = 0;

@@ -1,9 +1,9 @@
-#include <userlib.h>
-#include <memory.h>
-#include <keyboard.h>
-#include <storage.h>
+#include <tools/userlib.h>
+#include <system/memory.h>
+#include <drivers/keyboard.h>
+#include <system/storage.h>
 #include <apps/runtime.h>
-#include <desktop.h>
+#include <system/desktop.h>
 
 typedef enum {
     EDITOR_FIELD_MAIN,

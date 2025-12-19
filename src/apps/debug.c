@@ -1,6 +1,6 @@
-#include <userlib.h>
-#include <interface.h>
-#include <memory.h>
+#include <tools/userlib.h>
+#include <system/interface.h>
+#include <system/memory.h>
 
 #define APP_DEBUG_WIDTH 80
 #define APP_DEBUG_HEIGHT 25

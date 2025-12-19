@@ -1,10 +1,10 @@
-#include <graphics.h>
-#include <math.h>
+#include <tools/graphics.h>
+#include <tools/math.h>
 #include <fonts.mfp.h>
-#include <memory.h>
-#include <userlib.h>
-#include <serial.h>
-#include <desktop.h>
+#include <system/memory.h>
+#include <tools/userlib.h>
+#include <drivers/serial.h>
+#include <system/desktop.h>
 
 void draw_screen(unsigned char r, unsigned char g, unsigned char b) 
 {

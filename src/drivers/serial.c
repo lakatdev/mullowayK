@@ -1,8 +1,8 @@
-#include <serial.h>
-#include <port.h>
-#include <interface.h>
-#include <memory.h>
-#include <interrupts.h>
+#include <drivers/serial.h>
+#include <system/port.h>
+#include <system/interface.h>
+#include <system/memory.h>
+#include <system/interrupts.h>
 
 #define COM1 0x3F8
 #define TICKS_PER_MS 1

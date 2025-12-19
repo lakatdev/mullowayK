@@ -1,11 +1,11 @@
 #include <interpreter/instructions.h>
 #include <interpreter/interpreter.h>
 #include <interpreter/instance.h>
-#include <interface.h>
-#include <memory.h>
-#include <storage.h>
-#include <interrupts.h>
-#include <serial.h>
+#include <system/interface.h>
+#include <system/memory.h>
+#include <system/storage.h>
+#include <system/interrupts.h>
+#include <drivers/serial.h>
 
 #define INT_MIN -2147483648
 #define INT_MAX 2147483647

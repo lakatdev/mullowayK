@@ -1,4 +1,4 @@
-#include <graphics.h>
+#include <tools/graphics.h>
 
 void crash(const char* message, int code)
 {

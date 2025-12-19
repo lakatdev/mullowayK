@@ -6,27 +6,27 @@ GPPPARAMS = -m32 -Iinclude -nostdlib -fno-builtin -fno-exceptions -fno-leading-u
 ASPARAMS = --32
 LDPARAMS = -melf_i386 -z noexecstack
 
-objects = obj/loader.o \
-		obj/gdt.o \
-		obj/memory.o \
-		obj/load_idt.o \
-		obj/sse.o \
-		obj/graphics.o \
+objects = obj/system/loader.o \
+		obj/system/gdt.o \
+		obj/system/memory.o \
+		obj/system/load_idt.o \
+		obj/system/sse.o \
+		obj/tools/graphics.o \
 		obj/fonts.mfp.o \
-		obj/interrupts.o \
-		obj/rtc.o \
-		obj/keyboard.o \
-		obj/mouse.o \
-		obj/desktop.o \
-		obj/math.o \
-		obj/serial.o \
-		obj/userlib.o \
-		obj/ata.o \
-		obj/pci.o \
-		obj/storage.o \
-		obj/exceptions.o \
-		obj/acpi.o \
-		obj/usb.o \
+		obj/system/interrupts.o \
+		obj/system/rtc.o \
+		obj/drivers/keyboard.o \
+		obj/drivers/mouse.o \
+		obj/system/desktop.o \
+		obj/tools/math.o \
+		obj/drivers/serial.o \
+		obj/tools/userlib.o \
+		obj/drivers/ata.o \
+		obj/drivers/pci.o \
+		obj/system/storage.o \
+		obj/system/exceptions.o \
+		obj/system/acpi.o \
+		obj/drivers/usb.o \
 		obj/apps/debug.o \
 		obj/apps/editor.o \
 		obj/apps/files.o \
@@ -36,7 +36,7 @@ objects = obj/loader.o \
 		obj/apps/image_viewer.o \
 		obj/interpreter/interpreter.o \
 		obj/interpreter/instructions.o \
-        obj/kernel.o
+        obj/system/kernel.o
 
 obj/%.o: src/%.c
 	mkdir -p $(@D)

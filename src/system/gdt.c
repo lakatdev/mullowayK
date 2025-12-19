@@ -1,5 +1,5 @@
-#include <gdt.h>
-#include <interface.h>
+#include <system/gdt.h>
+#include <system/interface.h>
 
 unsigned int gdt_pointer = 0;
 unsigned int gdt_size = 0;

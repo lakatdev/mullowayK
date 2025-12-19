@@ -1,12 +1,12 @@
-#include <userlib.h>
-#include <storage.h>
-#include <memory.h>
-#include <interface.h>
+#include <tools/userlib.h>
+#include <system/storage.h>
+#include <system/memory.h>
+#include <system/interface.h>
 #include <apps/editor.h>
 #include <apps/runtime.h>
 #include <apps/image_viewer.h>
 #include <interpreter/interpreter.h>
-#include <desktop.h>
+#include <system/desktop.h>
 
 #define FILES_ON_PAGE 10
 

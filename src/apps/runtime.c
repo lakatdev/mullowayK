@@ -1,10 +1,10 @@
-#include <userlib.h>
+#include <tools/userlib.h>
 #include <interpreter/interpreter.h>
-#include <rtc.h>
-#include <storage.h>
-#include <interface.h>
-#include <desktop.h>
-#include <memory.h>
+#include <system/rtc.h>
+#include <system/storage.h>
+#include <system/interface.h>
+#include <system/desktop.h>
+#include <system/memory.h>
 #include <apps/runtime_session.h>
 
 static int app_runtime_current_window_id = -1;

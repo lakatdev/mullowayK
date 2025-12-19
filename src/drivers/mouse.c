@@ -1,6 +1,6 @@
-#include <port.h>
-#include <graphics.h>
-#include <desktop.h>
+#include <system/port.h>
+#include <tools/graphics.h>
+#include <system/desktop.h>
 
 unsigned char mouse_cycle;
 char mouse_byte[3];

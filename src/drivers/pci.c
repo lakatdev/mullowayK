@@ -1,6 +1,6 @@
-#include <port.h>
-#include <interface.h>
-#include <pci.h>
+#include <system/port.h>
+#include <system/interface.h>
+#include <drivers/pci.h>
 
 typedef struct {
     unsigned short io_base;

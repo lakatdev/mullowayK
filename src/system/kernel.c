@@ -1,15 +1,15 @@
-#include <port.h>
-#include <gdt.h>
-#include <memory.h>
-#include <interrupts.h>
-#include <interface.h>
-#include <graphics.h>
-#include <mouse.h>
-#include <desktop.h>
-#include <serial.h>
-#include <storage.h>
-#include <acpi.h>
-#include <usb.h>
+#include <system/port.h>
+#include <system/gdt.h>
+#include <system/memory.h>
+#include <system/interrupts.h>
+#include <system/interface.h>
+#include <tools/graphics.h>
+#include <drivers/mouse.h>
+#include <system/desktop.h>
+#include <drivers/serial.h>
+#include <system/storage.h>
+#include <system/acpi.h>
+#include <drivers/usb.h>
 
 unsigned char mlogo_60[1125] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

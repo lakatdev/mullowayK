@@ -1,8 +1,8 @@
-#include <interface.h>
-#include <graphics.h>
-#include <memory.h>
+#include <system/interface.h>
+#include <tools/graphics.h>
+#include <system/memory.h>
 #include <fonts.mfp.h>
-#include <math.h>
+#include <tools/math.h>
 
 unsigned char* video;
 unsigned char buffer[WIDTH * HEIGHT * 4];
