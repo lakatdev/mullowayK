@@ -36,6 +36,79 @@
 #define UHCI_PORT_LSDA   0x0100
 #define UHCI_PORT_RESET  0x0200
 
+#define EHCI_CAPLENGTH      0x00
+#define EHCI_HCIVERSION     0x02
+#define EHCI_HCSPARAMS      0x04
+#define EHCI_HCCPARAMS      0x08
+
+#define EHCI_USBCMD         0x00
+#define EHCI_USBSTS         0x04
+#define EHCI_USBINTR        0x08
+#define EHCI_FRINDEX        0x0C
+#define EHCI_CTRLDSSEGMENT  0x10
+#define EHCI_PERIODICLIST   0x14
+#define EHCI_ASYNCLISTADDR  0x18
+#define EHCI_CONFIGFLAG     0x40
+#define EHCI_PORTSC_BASE    0x44
+
+#define EHCI_CMD_RUN        (1 << 0)
+#define EHCI_CMD_HCRESET    (1 << 1)
+#define EHCI_CMD_PERIODIC_EN (1 << 4)
+#define EHCI_CMD_ASYNC_EN   (1 << 5)
+#define EHCI_CMD_IAAD       (1 << 6)
+
+#define EHCI_STS_USBINT     (1 << 0)
+#define EHCI_STS_USBERRINT  (1 << 1)
+#define EHCI_STS_PCD        (1 << 2)
+#define EHCI_STS_ASYNC_ADV  (1 << 5)
+#define EHCI_STS_HCHALTED   (1 << 12)
+#define EHCI_STS_RECLAMATION (1 << 13)
+#define EHCI_STS_ASYNC_STAT (1 << 15)
+
+#define EHCI_PORT_CCS       (1 << 0)
+#define EHCI_PORT_CSC       (1 << 1)
+#define EHCI_PORT_PED       (1 << 2)
+#define EHCI_PORT_PEDC      (1 << 3)
+#define EHCI_PORT_OCA       (1 << 4)
+#define EHCI_PORT_OCC       (1 << 5)
+#define EHCI_PORT_FPR       (1 << 6)
+#define EHCI_PORT_SUSPEND   (1 << 7)
+#define EHCI_PORT_RESET     (1 << 8)
+#define EHCI_PORT_LINE_STAT (3 << 10)
+#define EHCI_PORT_POWER     (1 << 12)
+#define EHCI_PORT_OWNER     (1 << 13)
+
+#define EHCI_QTD_ACTIVE     (1 << 7)
+#define EHCI_QTD_HALTED     (1 << 6)
+#define EHCI_QTD_BUFERR     (1 << 5)
+#define EHCI_QTD_BABBLE     (1 << 4)
+#define EHCI_QTD_XACTERR    (1 << 3)
+#define EHCI_QTD_MISSED     (1 << 2)
+#define EHCI_QTD_SPLIT      (1 << 1)
+#define EHCI_QTD_PING       (1 << 0)
+
+#define EHCI_QTD_PID_OUT    0
+#define EHCI_QTD_PID_IN     1
+#define EHCI_QTD_PID_SETUP  2
+
+typedef struct {
+    unsigned int next_qtd;
+    unsigned int alt_qtd;
+    unsigned int token;
+    unsigned int buffer[5];
+} __attribute__((packed, aligned(32))) ehci_qtd_t;
+
+typedef struct {
+    unsigned int horiz_link;
+    unsigned int endpoint_char;
+    unsigned int endpoint_caps;
+    unsigned int current_qtd;
+    unsigned int next_qtd;
+    unsigned int alt_qtd;
+    unsigned int token;
+    unsigned int buffer[5];
+} __attribute__((packed, aligned(32))) ehci_qh_t;
+
 #define USB_REQ_GET_STATUS        0x00
 #define USB_REQ_SET_ADDRESS       0x05
 #define USB_REQ_GET_DESCRIPTOR    0x06
@@ -100,6 +173,37 @@ typedef struct {
 static unsigned short uhci_base = 0;
 static int uhci_found = 0;
 
+static unsigned int ehci_base = 0;
+static unsigned int ehci_op_base = 0;
+static int ehci_found = 0;
+static int ehci_port_count = 0;
+
+static ehci_qh_t ehci_async_qh __attribute__((aligned(32)));
+static ehci_qh_t ehci_qh_pool[8] __attribute__((aligned(32)));
+static int ehci_qh_next = 0;
+static ehci_qtd_t ehci_qtd_pool[32] __attribute__((aligned(32)));
+static int ehci_qtd_next = 0;
+
+static inline unsigned int ehci_read32(unsigned int offset)
+{
+    return *(volatile unsigned int*)(ehci_op_base + offset);
+}
+
+static inline void ehci_write32(unsigned int offset, unsigned int val)
+{
+    *(volatile unsigned int*)(ehci_op_base + offset) = val;
+}
+
+static inline unsigned int ehci_cap_read32(unsigned int offset)
+{
+    return *(volatile unsigned int*)(ehci_base + offset);
+}
+
+static inline unsigned char ehci_cap_read8(unsigned int offset)
+{
+    return *(volatile unsigned char*)(ehci_base + offset);
+}
+
 static unsigned int frame_list[1024] __attribute__((aligned(4096)));
 
 static uhci_td_t td_pool[32] __attribute__((aligned(32)));
@@ -140,6 +244,11 @@ static void usb_delay(int count)
     for (volatile int i = 0; i < count * 1000; i++);
 }
 
+static void ehci_micro_delay(void)
+{
+    for (volatile int i = 0; i < 50; i++);
+}
+
 static int find_uhci_controller(void)
 {   
     for (unsigned char bus = 0; bus < 8; bus++) {
@@ -178,6 +287,283 @@ static int find_uhci_controller(void)
         }
     }
     return 0;
+}
+
+static int find_ehci_controller(void)
+{
+    for (unsigned char bus = 0; bus < 8; bus++) {
+        for (unsigned char dev = 0; dev < 32; dev++) {
+            unsigned int venddev = pci_read32(bus, dev, 0, 0x00);
+            if (venddev == 0xFFFFFFFF) continue;
+            
+            unsigned char header = pci_read32(bus, dev, 0, 0x0C) >> 16;
+            int max_fn = (header & 0x80) ? 8 : 1;
+            
+            for (unsigned char fn = 0; fn < max_fn; fn++) {
+                unsigned int vd = pci_read32(bus, dev, fn, 0x00);
+                if (vd == 0xFFFFFFFF) continue;
+                
+                unsigned int classreg = pci_read32(bus, dev, fn, 0x08);
+                unsigned char base_class = (classreg >> 24) & 0xFF;
+                unsigned char sub_class = (classreg >> 16) & 0xFF;
+                unsigned char prog_if = (classreg >> 8) & 0xFF;
+                
+                if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x20) {
+                    unsigned int bar0 = pci_read32(bus, dev, fn, 0x10);
+                    if ((bar0 & 1) == 0) {
+                        ehci_base = bar0 & 0xFFFFFF00;
+
+                        unsigned short cmd = pci_read16(bus, dev, fn, 0x04);
+                        cmd |= 0x06;
+                        pci_write16(bus, dev, fn, 0x04, cmd);
+                        
+                        unsigned char caplength = ehci_cap_read8(EHCI_CAPLENGTH);
+                        ehci_op_base = ehci_base + caplength;
+                        
+                        unsigned int hcsparams = ehci_cap_read32(EHCI_HCSPARAMS);
+                        ehci_port_count = hcsparams & 0x0F;
+                        
+                        printf("EHCI controller found, ");
+                        print_hex(ehci_port_count);
+                        printf(" ports\n");
+                        return 1;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+static void ehci_reset(void)
+{
+    unsigned int cmd = ehci_read32(EHCI_USBCMD);
+    cmd &= ~EHCI_CMD_RUN;
+    ehci_write32(EHCI_USBCMD, cmd);
+    
+    int timeout = 1000;
+    while (!(ehci_read32(EHCI_USBSTS) & EHCI_STS_HCHALTED) && timeout-- > 0) {
+        usb_delay(1);
+    }
+    
+    ehci_write32(EHCI_USBCMD, EHCI_CMD_HCRESET);
+    timeout = 1000;
+    while ((ehci_read32(EHCI_USBCMD) & EHCI_CMD_HCRESET) && timeout-- > 0) {
+        usb_delay(1);
+    }
+    
+    ehci_write32(EHCI_USBSTS, 0x3F);
+    ehci_write32(EHCI_USBINTR, 0);
+    ehci_write32(EHCI_CTRLDSSEGMENT, 0);
+}
+
+static void ehci_init_async(void)
+{
+    memset(&ehci_async_qh, 0, sizeof(ehci_async_qh));
+    ehci_async_qh.horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+    ehci_async_qh.endpoint_char = (1 << 15);
+    ehci_async_qh.next_qtd = 0x01;
+    ehci_async_qh.alt_qtd = 0x01;
+    
+    ehci_write32(EHCI_ASYNCLISTADDR, (unsigned int)&ehci_async_qh);
+}
+
+static void ehci_start(void)
+{
+    ehci_write32(EHCI_CONFIGFLAG, 1);
+    usb_delay(10);
+    
+    unsigned int cmd = ehci_read32(EHCI_USBCMD);
+    cmd |= EHCI_CMD_RUN | EHCI_CMD_ASYNC_EN;
+    cmd &= ~(0x3 << 2);
+    ehci_write32(EHCI_USBCMD, cmd);
+    
+    usb_delay(50);
+    
+    if (ehci_read32(EHCI_USBSTS) & EHCI_STS_HCHALTED) {
+        printf("EHCI: Controller failed to start\n");
+    }
+}
+
+static ehci_qtd_t* ehci_alloc_qtd(void)
+{
+    if (ehci_qtd_next >= 32) ehci_qtd_next = 0;
+    ehci_qtd_t* qtd = &ehci_qtd_pool[ehci_qtd_next++];
+    memset(qtd, 0, sizeof(ehci_qtd_t));
+    return qtd;
+}
+
+static ehci_qh_t* ehci_alloc_qh(void)
+{
+    if (ehci_qh_next >= 8) ehci_qh_next = 0;
+    ehci_qh_t* qh = &ehci_qh_pool[ehci_qh_next++];
+    memset(qh, 0, sizeof(ehci_qh_t));
+    return qh;
+}
+
+static int ehci_reset_port(int port)
+{
+    unsigned int portsc_addr = EHCI_PORTSC_BASE + (port * 4);
+    unsigned int status;
+    
+    status = ehci_read32(portsc_addr);
+    if (!(status & EHCI_PORT_CCS)) {
+        return 0;
+    }
+    
+    status |= EHCI_PORT_POWER;
+    ehci_write32(portsc_addr, status);
+    usb_delay(20);
+    
+    status = ehci_read32(portsc_addr);
+    status |= EHCI_PORT_RESET;
+    status &= ~EHCI_PORT_PED;
+    ehci_write32(portsc_addr, status);
+    usb_delay(50);
+    
+    status = ehci_read32(portsc_addr);
+    status &= ~EHCI_PORT_RESET;
+    ehci_write32(portsc_addr, status);
+    usb_delay(10);
+    
+    for (int i = 0; i < 10; i++) {
+        status = ehci_read32(portsc_addr);
+        if (status & EHCI_PORT_PED) {
+            printf("EHCI: Port ");
+            print_hex(port);
+            printf(" enabled\n");
+            return 1;
+        }
+        usb_delay(10);
+    }
+    
+    status = ehci_read32(portsc_addr);
+    if ((status & EHCI_PORT_LINE_STAT) == (1 << 10)) {
+        printf("EHCI: Low-speed device on port, needs companion\n");
+    }
+    
+    return 0;
+}
+
+static int ehci_control_transfer(unsigned char addr, unsigned char* setup, unsigned char* data, int data_len, int is_in)
+{
+    ehci_qtd_t* qtd_setup;
+    ehci_qtd_t* qtd_data = 0;
+    ehci_qtd_t* qtd_status;
+    ehci_qh_t* transfer_qh;
+    int timeout;
+    
+    qtd_setup = ehci_alloc_qtd();
+    if (data_len > 0) {
+        qtd_data = ehci_alloc_qtd();
+    }
+    qtd_status = ehci_alloc_qtd();
+    transfer_qh = ehci_alloc_qh();
+    
+    memcpy(setup_buffer, setup, 8);
+    qtd_setup->buffer[0] = (unsigned int)setup_buffer;
+    qtd_setup->token = EHCI_QTD_ACTIVE | (EHCI_QTD_PID_SETUP << 8) | (3 << 10) | (8 << 16);
+    
+    if (data_len > 0) {
+        qtd_setup->next_qtd = (unsigned int)qtd_data;
+        qtd_setup->alt_qtd = 0x01;
+        
+        if (!is_in) {
+            memcpy(data_buffer, data, data_len);
+        }
+        qtd_data->buffer[0] = (unsigned int)data_buffer;
+        qtd_data->token = EHCI_QTD_ACTIVE | ((is_in ? EHCI_QTD_PID_IN : EHCI_QTD_PID_OUT) << 8) | (3 << 10) | (data_len << 16) | (1 << 31);  // Data toggle = 1
+        qtd_data->next_qtd = (unsigned int)qtd_status;
+        qtd_data->alt_qtd = 0x01;
+    } else {
+        qtd_setup->next_qtd = (unsigned int)qtd_status;
+        qtd_setup->alt_qtd = 0x01;
+    }
+    
+    qtd_status->buffer[0] = 0;
+    qtd_status->token = EHCI_QTD_ACTIVE | ((is_in ? EHCI_QTD_PID_OUT : EHCI_QTD_PID_IN) << 8) | (3 << 10) | (1 << 15) | (1 << 31);
+    qtd_status->next_qtd = 0x01;
+    qtd_status->alt_qtd = 0x01;
+    
+    transfer_qh->horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+    transfer_qh->endpoint_char = (64 << 16) | (1 << 14) | (2 << 12) | (0 << 8) | addr;
+    transfer_qh->endpoint_caps = (1 << 30);
+    transfer_qh->current_qtd = 0;
+    transfer_qh->next_qtd = (unsigned int)qtd_setup;
+    transfer_qh->alt_qtd = 0x01;
+    transfer_qh->token = 0;
+    
+    ehci_async_qh.horiz_link = ((unsigned int)transfer_qh) | 0x02;
+    
+    timeout = 5000;
+    while (timeout-- > 0) {
+        if (!(qtd_status->token & EHCI_QTD_ACTIVE)) {
+            ehci_async_qh.horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+            
+            if (qtd_status->token & (EHCI_QTD_HALTED | EHCI_QTD_BUFERR | EHCI_QTD_BABBLE | EHCI_QTD_XACTERR)) {
+                return -1;
+            }
+            
+            if (is_in && data_len > 0) {
+                memcpy(data, data_buffer, data_len);
+            }
+            return 0;
+        }
+        usb_delay(1);
+    }
+    
+    ehci_async_qh.horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+    return -1;
+}
+
+static int ehci_interrupt_transfer(unsigned char addr, unsigned char ep, unsigned char* data, int len)
+{
+    ehci_qtd_t* qtd;
+    ehci_qh_t* transfer_qh;
+    static unsigned char ehci_toggle[4] = {0, 0, 0, 0};
+    int dev_idx = addr - 1;
+    int timeout;
+    
+    if (dev_idx < 0 || dev_idx >= 4) return -1;
+    
+    qtd = ehci_alloc_qtd();
+    transfer_qh = ehci_alloc_qh();
+    
+    qtd->buffer[0] = (unsigned int)data_buffer;
+    qtd->token = EHCI_QTD_ACTIVE | (EHCI_QTD_PID_IN << 8) | (3 << 10) | (len << 16) | (ehci_toggle[dev_idx] << 31);
+    qtd->next_qtd = 0x01;
+    qtd->alt_qtd = 0x01;
+    
+    transfer_qh->horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+    transfer_qh->endpoint_char = (len << 16) | (0 << 14) | (2 << 12) | ((ep & 0x0F) << 8) | addr;
+    transfer_qh->endpoint_caps = (1 << 30);
+    transfer_qh->next_qtd = (unsigned int)qtd;
+    transfer_qh->alt_qtd = 0x01;
+    transfer_qh->token = ehci_toggle[dev_idx] << 31;
+    
+    ehci_async_qh.horiz_link = ((unsigned int)transfer_qh) | 0x02;
+    
+    timeout = 100;
+    while (timeout-- > 0) {
+        if (!(qtd->token & EHCI_QTD_ACTIVE)) {
+            ehci_async_qh.horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+            
+            if (qtd->token & EHCI_QTD_HALTED) {
+                return 0;
+            }
+            
+            ehci_toggle[dev_idx] ^= 1;
+            int actual = len - ((qtd->token >> 16) & 0x7FFF);
+            if (actual > 0 && actual <= len) {
+                memcpy(data, data_buffer, actual);
+            }
+            return actual > 0 ? actual : 0;
+        }
+        usb_delay(1);
+    }
+    
+    ehci_async_qh.horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+    return -1;
 }
 
 static void uhci_reset(void)
@@ -381,6 +767,28 @@ static int uhci_interrupt_transfer(unsigned char addr, unsigned char ep, unsigne
     return -1;
 }
 
+static int usb_control_transfer(unsigned char addr, unsigned char* setup, unsigned char* data, int data_len, int is_in)
+{
+    if (uhci_found) {
+        return uhci_control_transfer(addr, setup, data, data_len, is_in);
+    }
+    else if (ehci_found) {
+        return ehci_control_transfer(addr, setup, data, data_len, is_in);
+    }
+    return -1;
+}
+
+static int usb_interrupt_transfer(unsigned char addr, unsigned char ep, unsigned char* data, int len)
+{
+    if (uhci_found) {
+        return uhci_interrupt_transfer(addr, ep, data, len);
+    }
+    else if (ehci_found) {
+        return ehci_interrupt_transfer(addr, ep, data, len);
+    }
+    return -1;
+}
+
 static int usb_set_address(unsigned char addr)
 {
     unsigned char setup[8] = {
@@ -390,7 +798,7 @@ static int usb_set_address(unsigned char addr)
         0, 0,               
         0, 0                
     };
-    return uhci_control_transfer(0, setup, 0, 0, 0);
+    return usb_control_transfer(0, setup, 0, 0, 0);
 }
 
 static int usb_get_device_descriptor(unsigned char addr, unsigned char* buf)
@@ -402,7 +810,7 @@ static int usb_get_device_descriptor(unsigned char addr, unsigned char* buf)
         0, 0,
         18, 0
     };
-    return uhci_control_transfer(addr, setup, buf, 18, 1);
+    return usb_control_transfer(addr, setup, buf, 18, 1);
 }
 
 static int usb_get_config_descriptor(unsigned char addr, unsigned char* buf, int len)
@@ -414,7 +822,7 @@ static int usb_get_config_descriptor(unsigned char addr, unsigned char* buf, int
         0, 0,
         len & 0xFF, (len >> 8) & 0xFF
     };
-    return uhci_control_transfer(addr, setup, buf, len, 1);
+    return usb_control_transfer(addr, setup, buf, len, 1);
 }
 
 static int usb_set_configuration(unsigned char addr, unsigned char config)
@@ -426,7 +834,7 @@ static int usb_set_configuration(unsigned char addr, unsigned char config)
         0, 0,
         0, 0
     };
-    return uhci_control_transfer(addr, setup, 0, 0, 0);
+    return usb_control_transfer(addr, setup, 0, 0, 0);
 }
 
 static int usb_set_hid_protocol(unsigned char addr, unsigned char iface, unsigned char proto)
@@ -438,7 +846,7 @@ static int usb_set_hid_protocol(unsigned char addr, unsigned char iface, unsigne
         iface, 0,              
         0, 0
     };
-    return uhci_control_transfer(addr, setup, 0, 0, 0);
+    return usb_control_transfer(addr, setup, 0, 0, 0);
 }
 
 static void usb_serial_init_chip(unsigned char addr)
@@ -450,55 +858,55 @@ static void usb_serial_init_chip(unsigned char addr)
         case SERIAL_CHIP_CH340:
             setup[0] = 0x40; setup[1] = 0xA1; setup[2] = 0x00; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, 0, 0, 0);
+            usb_control_transfer(addr, setup, 0, 0, 0);
             usb_delay(10);
             
             setup[0] = 0x40; setup[1] = 0x9A; setup[2] = 0x33; setup[3] = 0x83;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, 0, 0, 0);
+            usb_control_transfer(addr, setup, 0, 0, 0);
             
             setup[0] = 0x40; setup[1] = 0x9A; setup[2] = 0xC3; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, 0, 0, 0);
+            usb_control_transfer(addr, setup, 0, 0, 0);
             break;
             
         case SERIAL_CHIP_CP2102:
             setup[0] = 0x41; setup[1] = 0x00; setup[2] = 0x01; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, 0, 0, 0);
+            usb_control_transfer(addr, setup, 0, 0, 0);
             
             buf[0] = 0x00; buf[1] = 0xC2; buf[2] = 0x01; buf[3] = 0x00;
             setup[0] = 0x41; setup[1] = 0x1E; setup[2] = 0x00; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x04; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, buf, 4, 0);
+            usb_control_transfer(addr, setup, buf, 4, 0);
             
             setup[0] = 0x41; setup[1] = 0x03; setup[2] = 0x00; setup[3] = 0x08;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, 0, 0, 0);
+            usb_control_transfer(addr, setup, 0, 0, 0);
             break;
             
         case SERIAL_CHIP_FTDI:
             setup[0] = 0x40; setup[1] = 0x00; setup[2] = 0x00; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, 0, 0, 0);
+            usb_control_transfer(addr, setup, 0, 0, 0);
             
             setup[0] = 0x40; setup[1] = 0x03; setup[2] = 0x1A; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, 0, 0, 0);
+            usb_control_transfer(addr, setup, 0, 0, 0);
             
             setup[0] = 0x40; setup[1] = 0x04; setup[2] = 0x08; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, 0, 0, 0);
+            usb_control_transfer(addr, setup, 0, 0, 0);
             
             setup[0] = 0x40; setup[1] = 0x02; setup[2] = 0x00; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, 0, 0, 0);
+            usb_control_transfer(addr, setup, 0, 0, 0);
             break;
             
         case SERIAL_CHIP_PL2303:
             setup[0] = 0xC0; setup[1] = 0x01; setup[2] = 0x84; setup[3] = 0x84;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x01; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, buf, 1, 1);
+            usb_control_transfer(addr, setup, buf, 1, 1);
             
             buf[0] = 0x00; buf[1] = 0xC2; buf[2] = 0x01; buf[3] = 0x00;  // 115200
             buf[4] = 0x00;  
@@ -506,7 +914,7 @@ static void usb_serial_init_chip(unsigned char addr)
             buf[6] = 0x08;
             setup[0] = 0x21; setup[1] = 0x20; setup[2] = 0x00; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x07; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, buf, 7, 0);
+            usb_control_transfer(addr, setup, buf, 7, 0);
             break;
             
         case SERIAL_CHIP_CDC:
@@ -517,11 +925,11 @@ static void usb_serial_init_chip(unsigned char addr)
             buf[6] = 0x08;
             setup[0] = 0x21; setup[1] = 0x20; setup[2] = 0x00; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x07; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, buf, 7, 0);
+            usb_control_transfer(addr, setup, buf, 7, 0);
             
             setup[0] = 0x21; setup[1] = 0x22; setup[2] = 0x03; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(addr, setup, 0, 0, 0);
+            usb_control_transfer(addr, setup, 0, 0, 0);
             break;
     }
     printf("USB: Serial chip initialized.\n");
@@ -730,7 +1138,7 @@ static void process_keyboard(void)
     
     if (!dev->configured) return;
     
-    len = uhci_interrupt_transfer(dev->address, dev->endpoint_in, kbd_report, 8);
+    len = usb_interrupt_transfer(dev->address, dev->endpoint_in, kbd_report, 8);
     if (len < 0) return;
     
     unsigned char modifiers = kbd_report[0];
@@ -775,7 +1183,7 @@ static void process_mouse(void)
     
     if (!dev->configured) return;
     
-    len = uhci_interrupt_transfer(dev->address, dev->endpoint_in, mouse_report, 4);
+    len = usb_interrupt_transfer(dev->address, dev->endpoint_in, mouse_report, 4);
     
     if (len < 3) return;  
     
@@ -812,7 +1220,7 @@ static void process_serial(void)
     
     if (!dev->configured) return;
     
-    len = uhci_interrupt_transfer(dev->address, dev->endpoint_in, buf, dev->max_packet ? dev->max_packet : 8);
+    len = usb_interrupt_transfer(dev->address, dev->endpoint_in, buf, dev->max_packet ? dev->max_packet : 8);
     if (len > 0) {
         for (int i = 0; i < len; i++) {
             int next = (serial_rx_head + 1) % USB_SERIAL_BUFFER_SIZE;
@@ -834,30 +1242,43 @@ void init_usb(void)
     memset(kbd_report, 0, sizeof(kbd_report));
     memset(kbd_prev_report, 0, sizeof(kbd_prev_report));
     
-    if (!find_uhci_controller()) {
-        printf("USB: No UHCI controller found.\n");
+    if (find_uhci_controller()) {
+        uhci_found = 1;
+        uhci_reset();
+        uhci_init_framelist();
+        uhci_start();
+        usb_delay(100);
+        
+        for (int port = 0; port < 2; port++) {
+            if (uhci_reset_port(port)) {
+                enumerate_device(port);
+            }
+        }
+    }
+    else if (find_ehci_controller()) {
+        ehci_found = 1;
+        ehci_reset();
+        ehci_init_async();
+        ehci_start();
+        usb_delay(100);
+        
+        for (int port = 0; port < ehci_port_count; port++) {
+            if (ehci_reset_port(port)) {
+                enumerate_device(port);
+            }
+        }
+    }
+    else {
+        printf("USB: No supported controller found.\n");
         return;
     }
     
-    uhci_found = 1;
-    
-    uhci_reset();
-    uhci_init_framelist();
-    uhci_start();
-    
-    usb_delay(100);
-    
-    for (int port = 0; port < 2; port++) {
-        if (uhci_reset_port(port)) {
-            enumerate_device(port);
-        }
-    }
     printf("USB: Init completed.\n");
 }
 
 void usb_poll(void)
 {
-    if (!uhci_found) return;
+    if (!uhci_found && !ehci_found) return;
     
     if (usb_kbd_idx >= 0) {
         process_keyboard();
@@ -963,7 +1384,7 @@ int usb_serial_set_baudrate(unsigned int baudrate)
             setup[0] = 0x40; setup[1] = 0x9A;
             setup[2] = div & 0xFF; setup[3] = 0x83;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(dev->address, setup, 0, 0, 0);
+            usb_control_transfer(dev->address, setup, 0, 0, 0);
             break;
         }
         
@@ -974,7 +1395,7 @@ int usb_serial_set_baudrate(unsigned int baudrate)
             buf[3] = (baudrate >> 24) & 0xFF;
             setup[0] = 0x41; setup[1] = 0x1E; setup[2] = 0x00; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x04; setup[7] = 0x00;
-            uhci_control_transfer(dev->address, setup, buf, 4, 0);
+            usb_control_transfer(dev->address, setup, buf, 4, 0);
             break;
             
         case SERIAL_CHIP_FTDI: {
@@ -990,7 +1411,7 @@ int usb_serial_set_baudrate(unsigned int baudrate)
             setup[0] = 0x40; setup[1] = 0x03;
             setup[2] = div & 0xFF; setup[3] = (div >> 8) & 0xFF;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
-            uhci_control_transfer(dev->address, setup, 0, 0, 0);
+            usb_control_transfer(dev->address, setup, 0, 0, 0);
             break;
         }
             
@@ -1006,7 +1427,7 @@ int usb_serial_set_baudrate(unsigned int baudrate)
             buf[6] = 0x08;
             setup[0] = 0x21; setup[1] = 0x20; setup[2] = 0x00; setup[3] = 0x00;
             setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x07; setup[7] = 0x00;
-            uhci_control_transfer(dev->address, setup, buf, 7, 0);
+            usb_control_transfer(dev->address, setup, buf, 7, 0);
             break;
     }
     
