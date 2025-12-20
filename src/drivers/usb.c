@@ -244,11 +244,6 @@ static void usb_delay(int count)
     for (volatile int i = 0; i < count * 1000; i++);
 }
 
-static void ehci_micro_delay(void)
-{
-    for (volatile int i = 0; i < 50; i++);
-}
-
 static int find_uhci_controller(void)
 {   
     for (unsigned char bus = 0; bus < 8; bus++) {
