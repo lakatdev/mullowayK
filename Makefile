@@ -26,6 +26,7 @@ objects = obj/system/loader.o \
 		obj/system/storage.o \
 		obj/system/exceptions.o \
 		obj/system/acpi.o \
+		obj/drivers/xhci.o \
 		obj/drivers/usb.o \
 		obj/apps/debug.o \
 		obj/apps/editor.o \
@@ -72,6 +73,12 @@ run:
 
 run-usb:
 	qemu-system-x86_64 -drive file=mullowayk_disk.img,format=raw -m 400 -device piix3-usb-uhci,id=uhci -device usb-kbd,bus=uhci.0,port=1 -device usb-mouse,bus=uhci.0,port=2
+
+run-usb2:
+	qemu-system-x86_64 -drive file=mullowayk_disk.img,format=raw -m 400 -device usb-ehci,id=ehci -device usb-kbd,bus=ehci.0,port=1 -device usb-mouse,bus=ehci.0,port=2
+
+run-usb3:
+	qemu-system-x86_64 -drive file=mullowayk_disk.img,format=raw -m 400 -device qemu-xhci,id=xhci -device usb-kbd,bus=xhci.0,port=1 -device usb-mouse,bus=xhci.0,port=2
 
 run-iso:
 	qemu-system-x86_64 -m 400 -serial stdio -cdrom mullowayk.iso
