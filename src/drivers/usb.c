@@ -1229,7 +1229,7 @@ static void process_serial(void)
 
 // external
 
-void init_usb(void)
+void init_usb_legacy(void)
 {
     printf("USB: Init started.\n");
 
@@ -1271,7 +1271,7 @@ void init_usb(void)
     printf("USB: Init completed.\n");
 }
 
-void usb_poll(void)
+void usb_poll_legacy(void)
 {
     if (!uhci_found && !ehci_found) return;
     
@@ -1288,7 +1288,7 @@ void usb_poll(void)
     }
 }
 
-void usb_serial_write(const unsigned char* data, unsigned int size)
+void usb_serial_write_legacy(const unsigned char* data, unsigned int size)
 {
     if (usb_serial_idx < 0) return;
     
@@ -1320,7 +1320,7 @@ void usb_serial_write(const unsigned char* data, unsigned int size)
     }
 }
 
-int usb_serial_read(unsigned char* data, unsigned int size)
+int usb_serial_read_legacy(unsigned char* data, unsigned int size)
 {
     int count = 0;
     while (count < (int)size && serial_rx_tail != serial_rx_head) {
@@ -1330,12 +1330,12 @@ int usb_serial_read(unsigned char* data, unsigned int size)
     return count;
 }
 
-int usb_serial_data_available(void)
+int usb_serial_data_available_legacy(void)
 {
     return serial_rx_head != serial_rx_tail;
 }
 
-unsigned char usb_serial_read_byte(void)
+unsigned char usb_serial_read_byte_legacy(void)
 {
     if (serial_rx_tail == serial_rx_head) return 0;
     unsigned char c = serial_rx_buffer[serial_rx_tail];
@@ -1343,19 +1343,19 @@ unsigned char usb_serial_read_byte(void)
     return c;
 }
 
-void usb_serial_write_byte(unsigned char c)
+void usb_serial_write_byte_legacy(unsigned char c)
 {
-    usb_serial_write(&c, 1);
+    usb_serial_write_legacy(&c, 1);
 }
 
-void usb_serial_write_string(const char* str)
+void usb_serial_write_string_legacy(const char* str)
 {
     while (*str) {
-        usb_serial_write_byte(*str++);
+        usb_serial_write_byte_legacy(*str++);
     }
 }
 
-int usb_serial_set_baudrate(unsigned int baudrate)
+int usb_serial_set_baudrate_legacy(unsigned int baudrate)
 {
     if (usb_serial_idx < 0) return -1;
     
@@ -1429,17 +1429,17 @@ int usb_serial_set_baudrate(unsigned int baudrate)
     return 0;
 }
 
-int usb_keyboard_present(void)
+int usb_keyboard_present_legacy(void)
 {
     return usb_kbd_idx >= 0 && usb_devices[usb_kbd_idx].configured;
 }
 
-int usb_mouse_present(void)
+int usb_mouse_present_legacy(void)
 {
     return usb_mouse_idx >= 0 && usb_devices[usb_mouse_idx].configured;
 }
 
-int usb_serial_present(void)
+int usb_serial_present_legacy(void)
 {
     return usb_serial_idx >= 0 && usb_devices[usb_serial_idx].configured;
 }

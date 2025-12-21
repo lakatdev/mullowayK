@@ -22,5 +22,18 @@ int usb_keyboard_present(void);
 int usb_mouse_present(void);
 int usb_serial_present(void);
 
+void init_usb_legacy(void);
+void usb_poll_legacy(void);
+int usb_keyboard_present_legacy(void);
+int usb_mouse_present_legacy(void);
+int usb_serial_present_legacy(void);
+void usb_serial_write_legacy(const unsigned char* data, unsigned int size);
+int usb_serial_read_legacy(unsigned char* data, unsigned int size);
+int usb_serial_data_available_legacy(void);
+unsigned char usb_serial_read_byte_legacy(void);
+void usb_serial_write_byte_legacy(unsigned char c);
+void usb_serial_write_string_legacy(const char* str);
+int usb_serial_set_baudrate_legacy(unsigned int baudrate);
+
 #endif
 
