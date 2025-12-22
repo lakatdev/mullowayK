@@ -37,11 +37,15 @@ static int tr_ring_enq[4] = {0, 0, 0, 0};
 static int tr_ring_cycle[4] = {1, 1, 1, 1};
 static int int_ring_enq[4] = {0, 0, 0, 0};
 static int int_ring_cycle[4] = {1, 1, 1, 1};
+static int bulk_out_ring_enq[4] = {0, 0, 0, 0};
+static int bulk_out_ring_cycle[4] = {1, 1, 1, 1};
 static int int_pending[4] = {0, 0, 0, 0};
 
 static unsigned char setup_buffer[8] __attribute__((aligned(16)));
 static unsigned char control_data_buffer[256] __attribute__((aligned(64)));
 static unsigned char int_data_buffers[4][64] __attribute__((aligned(64)));
+static xhci_trb_t bulk_out_rings[4][64] __attribute__((aligned(64)));
+
 
 static usb_device_t_xhci usb_devices[4];
 static int next_address = 1;
@@ -209,6 +213,12 @@ static void xhci_init_rings(void)
         int_rings[i][63].param_lo = (unsigned int)int_rings[i];
         int_ring_enq[i] = 0;
         int_ring_cycle[i] = 1;
+
+        memset(bulk_out_rings[i], 0, sizeof(bulk_out_rings[i]));
+        bulk_out_rings[i][63].control = (TRB_TYPE_LINK << 10) | (1 << 5) | (1 << 1) | 1;
+        bulk_out_rings[i][63].param_lo = (unsigned int)bulk_out_rings[i];
+        bulk_out_ring_enq[i] = 0;
+        bulk_out_ring_cycle[i] = 1;
     }
     
     memset(dcbaa, 0, sizeof(dcbaa));
@@ -398,6 +408,49 @@ static int xhci_configure_hid_endpoint(int slot_id, int ep_num, int max_packet)
     return 0;
 }
 
+
+static int xhci_configure_bulk_endpoint(int slot_id, int ep_num, int max_packet, int is_in)
+{
+    int ring_idx = slot_id - 1;
+    if (ring_idx < 0 || ring_idx >= 4) return -1;
+    
+    memset(raw_input_context, 0, sizeof(raw_input_context));
+    
+    unsigned int* ctrl_ctx = get_input_control_ctx();
+    unsigned int* slot_ctx = get_input_slot_ctx();
+    
+    int ep_dci = (ep_num * 2) + (is_in ? 1 : 0);
+    ctrl_ctx[0] = 0;
+    ctrl_ctx[1] = (1 << ep_dci) | 1;
+    
+    slot_ctx[0] = (ep_dci << 27);
+    
+    int ep_idx = ep_dci - 1; 
+    unsigned int* ep_ctx = get_input_ep_ctx(ep_idx);
+    
+    int ep_type = is_in ? 6 : 2;
+    
+    ep_ctx[0] = (0 << 16); 
+    ep_ctx[1] = (ep_type << 3) | (max_packet << 16) | 1;
+    
+    if (is_in) {
+        ep_ctx[2] = ((unsigned int)int_rings[ring_idx]) | int_ring_cycle[ring_idx]; 
+    } else {
+        ep_ctx[2] = ((unsigned int)bulk_out_rings[ring_idx]) | bulk_out_ring_cycle[ring_idx];
+    }
+
+    ep_ctx[4] = 8;
+    xhci_trb_t cmd = {0};
+    cmd.param_lo = (unsigned int)raw_input_context;
+    cmd.control = (TRB_TYPE_CONFIG_EP << 10) | (slot_id << 24);
+    
+    if (xhci_send_command(&cmd) < 0) {
+        return -1;
+    }
+    
+    return 0;
+}
+
 static void xhci_reset_transfer_ring(int slot_id)
 {
     int ring_idx = slot_id - 1;
@@ -480,38 +533,54 @@ static int xhci_control_transfer(int slot_id, unsigned char* setup, unsigned cha
     return 0;
 }
 
-static int xhci_interrupt_transfer(int slot_id, int ep, unsigned char* data, int len)
+static int xhci_bulk_transfer(int slot_id, int ep, unsigned char* data, int len, int is_in)
 {
     int ring_idx = slot_id - 1;
     if (ring_idx < 0 || ring_idx >= 4) return -1;
     
     unsigned char* dev_buffer = int_data_buffers[ring_idx];    
-    int expected_dci = (ep * 2) + 1;
+    int expected_dci = (ep * 2) + (is_in ? 1 : 0);
     
-    if (!int_pending[ring_idx]) {
-        xhci_trb_t* ring = int_rings[ring_idx];
-        int enq = int_ring_enq[ring_idx];
-        int cycle = int_ring_cycle[ring_idx];
-        
-        ring[enq].param_lo = (unsigned int)dev_buffer;
-        ring[enq].param_hi = 0;
-        ring[enq].status = len;
-        ring[enq].control = (TRB_TYPE_NORMAL << 10) | (1 << 5) | cycle;
-        
-        enq++;
-        if (enq >= 63) {
-            ring[63].control = (TRB_TYPE_LINK << 10) | (1 << 5) | (1 << 1) | cycle;
-            int_ring_cycle[ring_idx] ^= 1;
-            enq = 0;
-        }
-        int_ring_enq[ring_idx] = enq;
-        
-        xhci_ring_doorbell(slot_id, expected_dci);
-        int_pending[ring_idx] = 1;
+    if (!is_in && len > 0) {
+        memcpy(dev_buffer, data, len);
+    }
+
+    xhci_trb_t* ring;
+    int enq;
+    int cycle;
+    
+    if (is_in) {
+        ring = int_rings[ring_idx];
+        enq = int_ring_enq[ring_idx];
+        cycle = int_ring_cycle[ring_idx];
+    }
+    else {
+        ring = bulk_out_rings[ring_idx];
+        enq = bulk_out_ring_enq[ring_idx];
+        cycle = bulk_out_ring_cycle[ring_idx];
     }
     
-    for (int i = 0; i < 20; i++) {
-        xhci_trb_t* evt = &event_ring[evt_ring_deq];
+    ring[enq].param_lo = (unsigned int)dev_buffer;
+    ring[enq].param_hi = 0;
+    ring[enq].status = len;
+    ring[enq].control = (TRB_TYPE_NORMAL << 10) | (1 << 5) | cycle;
+    
+    enq++;
+    if (enq >= 63) {
+        ring[63].control = (TRB_TYPE_LINK << 10) | (1 << 5) | (1 << 1) | cycle;
+        if (is_in) int_ring_cycle[ring_idx] ^= 1;
+        else bulk_out_ring_cycle[ring_idx] ^= 1;
+        enq = 0;
+    }
+    
+    if (is_in) int_ring_enq[ring_idx] = enq;
+    else bulk_out_ring_enq[ring_idx] = enq;
+    
+    xhci_ring_doorbell(slot_id, expected_dci);
+    
+    int timeout = 1000;
+    while (timeout--) {
+         xhci_trb_t* evt = &event_ring[evt_ring_deq];
         
         if ((evt->control & 1) != evt_ring_cycle) {
             xhci_delay(1);
@@ -522,38 +591,40 @@ static int xhci_interrupt_transfer(int slot_id, int ep, unsigned char* data, int
         int evt_slot = (evt->control >> 24) & 0xFF;
         int evt_dci = (evt->control >> 16) & 0x1F;
         
-        if (evt_type != TRB_TYPE_TRANSFER || (evt_slot == slot_id && evt_dci == expected_dci)) {
-            unsigned int ir0_base = xhci_rt_base + 0x20;
-            xhci_write64(ir0_base, 0x18, (unsigned int)evt | (1 << 3));
-            
-            evt_ring_deq++;
-            if (evt_ring_deq >= 64) {
-                evt_ring_deq = 0;
-                evt_ring_cycle ^= 1;
-            }
-            
-            if (evt_type == TRB_TYPE_TRANSFER && evt_slot == slot_id && evt_dci == expected_dci) {
-                int_pending[ring_idx] = 0;
-
-                int cc = (evt->status >> 24) & 0xFF;
-                if (cc == TRB_CC_SUCCESS || cc == TRB_CC_SHORT_PACKET) {
-                    int residue = evt->status & 0xFFFFFF;
-                    int actual = len - residue;
-                    if (actual > 0 && actual <= len) {
-                        memcpy(data, dev_buffer, actual);
-                        return actual;
-                    }
-                }
-                return 0;
-            }
+        unsigned int ir0_base = xhci_rt_base + 0x20;
+        xhci_write64(ir0_base, 0x18, (unsigned int)evt | (1 << 3));
+        
+        evt_ring_deq++;
+        if (evt_ring_deq >= 64) {
+            evt_ring_deq = 0;
+            evt_ring_cycle ^= 1;
         }
-        else {
-            return 0;
+        
+        if (evt_type == TRB_TYPE_TRANSFER && evt_slot == slot_id && evt_dci == expected_dci) {
+            int cc = (evt->status >> 24) & 0xFF;
+            if (cc == TRB_CC_SUCCESS || cc == TRB_CC_SHORT_PACKET) {
+                if (is_in) {
+                     int residue = evt->status & 0xFFFFFF;
+                     int actual = len - residue;
+                     if (actual > 0 && actual <= len) {
+                         memcpy(data, dev_buffer, actual);
+                         return actual;
+                     }
+                }
+                return len;
+            }
+            return -1;
         }
     }
     
-    return 0;
+    return -2;
 }
+
+static int xhci_interrupt_transfer(int slot_id, int ep, unsigned char* data, int len)
+{
+    return xhci_bulk_transfer(slot_id, ep, data, len, 1);
+}
+
 
 
 static int xhci_reset_port(int port)
@@ -623,6 +694,93 @@ static int usb_set_hid_protocol(int slot_id, int iface, int proto)
 {
     unsigned char setup[8] = {0x21, USB_REQ_SET_PROTOCOL, proto, 0, iface, 0, 0, 0};
     return xhci_control_transfer(slot_id, setup, 0, 0, 0);
+}
+
+
+static void usb_serial_init_chip_xhci(int slot_id)
+{
+    unsigned char setup[8];
+    unsigned char buf[8];
+    
+    switch (serial_chip_type) {
+        case SERIAL_CHIP_CH340:
+            setup[0] = 0x40; setup[1] = 0xA1; setup[2] = 0x00; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            xhci_delay(10);
+            
+            setup[0] = 0x40; setup[1] = 0x9A; setup[2] = 0x33; setup[3] = 0x83;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            
+            setup[0] = 0x40; setup[1] = 0x9A; setup[2] = 0xC3; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            break;
+            
+        case SERIAL_CHIP_CP2102:
+            setup[0] = 0x41; setup[1] = 0x00; setup[2] = 0x01; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            
+            buf[0] = 0x00; buf[1] = 0xC2; buf[2] = 0x01; buf[3] = 0x00;
+            setup[0] = 0x41; setup[1] = 0x1E; setup[2] = 0x00; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x04; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, buf, 4, 0);
+            
+            setup[0] = 0x41; setup[1] = 0x03; setup[2] = 0x00; setup[3] = 0x08;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            break;
+            
+        case SERIAL_CHIP_FTDI:
+            setup[0] = 0x40; setup[1] = 0x00; setup[2] = 0x00; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            
+            setup[0] = 0x40; setup[1] = 0x03; setup[2] = 0x1A; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            
+            setup[0] = 0x40; setup[1] = 0x04; setup[2] = 0x08; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            
+            setup[0] = 0x40; setup[1] = 0x02; setup[2] = 0x00; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            break;
+            
+        case SERIAL_CHIP_PL2303:
+            setup[0] = 0xC0; setup[1] = 0x01; setup[2] = 0x84; setup[3] = 0x84;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x01; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, buf, 1, 1);
+            
+            buf[0] = 0x00; buf[1] = 0xC2; buf[2] = 0x01; buf[3] = 0x00;  // 115200
+            buf[4] = 0x00;  
+            buf[5] = 0x00; 
+            buf[6] = 0x08;
+            setup[0] = 0x21; setup[1] = 0x20; setup[2] = 0x00; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x07; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, buf, 7, 0);
+            break;
+            
+        case SERIAL_CHIP_CDC:
+        default:
+            buf[0] = 0x00; buf[1] = 0xC2; buf[2] = 0x01; buf[3] = 0x00;
+            buf[4] = 0x00;
+            buf[5] = 0x00;
+            buf[6] = 0x08;
+            setup[0] = 0x21; setup[1] = 0x20; setup[2] = 0x00; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x07; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, buf, 7, 0);
+            
+            setup[0] = 0x21; setup[1] = 0x22; setup[2] = 0x03; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            break;
+    }
+    printf("xHCI: Serial chip initialized.\n");
 }
 
 static void enumerate_device_xhci(int port)
@@ -746,6 +904,19 @@ static void enumerate_device_xhci(int port)
         if (xhci_configure_hid_endpoint(slot_id, ep_in, max_pkt) < 0) {
             printf("xHCI: Failed to configure HID endpoint.\n");
         }
+    }
+    else if (usb_devices[dev_idx].device_type == USB_DEV_SERIAL) {
+        int ep_in = usb_devices[dev_idx].endpoint_in;
+        int ep_out = usb_devices[dev_idx].endpoint_out;
+        int max_pkt = usb_devices[dev_idx].max_packet ? usb_devices[dev_idx].max_packet : 64;
+        
+        if (ep_in) {
+            xhci_configure_bulk_endpoint(slot_id, ep_in, max_pkt, 1);
+        }
+        if (ep_out) {
+            xhci_configure_bulk_endpoint(slot_id, ep_out, max_pkt, 0);
+        }
+        usb_serial_init_chip_xhci(slot_id);
     }
     
     usb_devices[dev_idx].configured = 1;
@@ -922,12 +1093,24 @@ int usb_serial_present(void)
     return usb_serial_idx >= 0 && usb_devices[usb_serial_idx].configured;
 }
 
+
 void usb_serial_write(const unsigned char* data, unsigned int size)
 {
     if (using_legacy) { usb_serial_write_legacy(data, size); return; }
-    // xHCI serial write not implemented
-    // needs bulk transfer
+    
+    usb_device_t_xhci* dev = &usb_devices[usb_serial_idx];
+    if (!dev->configured) return;
+    
+    unsigned char buf[64];
+    while (size > 0) {
+        int chunk = size > 64 ? 64 : size;
+        memcpy(buf, data, chunk);
+        xhci_bulk_transfer(dev->slot_id, dev->endpoint_out, buf, chunk, 0); // 0 = OUT
+        data += chunk;
+        size -= chunk;
+    }
 }
+
 
 int usb_serial_read(unsigned char* data, unsigned int size)
 {
@@ -964,12 +1147,85 @@ void usb_serial_write_byte(unsigned char c)
 void usb_serial_write_string(const char* str)
 {
     if (using_legacy) { usb_serial_write_string_legacy(str); return; }
-    while (*str) usb_serial_write_byte(*str++);
+    
+    int len = 0;
+    while (str[len]) len++;
+    
+    usb_serial_write((const unsigned char*)str, len);
 }
+
 
 int usb_serial_set_baudrate(unsigned int baudrate)
 {
     if (using_legacy) return usb_serial_set_baudrate_legacy(baudrate);
-    // xHCI baudrate setting not implemented
-    return -1;
+    
+    usb_device_t_xhci* dev = &usb_devices[usb_serial_idx];
+    if (!dev->configured) return -1;
+    
+    unsigned char setup[8];
+    unsigned char buf[8];
+    int slot_id = dev->slot_id;
+    
+    switch (serial_chip_type) {
+        case SERIAL_CHIP_CH340: {
+            unsigned short div;
+            switch (baudrate) {
+                case 9600:   div = 0xB2; break;
+                case 19200:  div = 0xD9; break;
+                case 38400:  div = 0x6C; break;
+                case 57600:  div = 0x48; break;
+                case 115200: div = 0x33; break;
+                default:     div = 0x33; break;
+            }
+            setup[0] = 0x40; setup[1] = 0x9A;
+            setup[2] = div & 0xFF; setup[3] = 0x83;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            break;
+        }
+        
+        case SERIAL_CHIP_CP2102:
+            buf[0] = baudrate & 0xFF;
+            buf[1] = (baudrate >> 8) & 0xFF;
+            buf[2] = (baudrate >> 16) & 0xFF;
+            buf[3] = (baudrate >> 24) & 0xFF;
+            setup[0] = 0x41; setup[1] = 0x1E; setup[2] = 0x00; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x04; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, buf, 4, 0);
+            break;
+            
+        case SERIAL_CHIP_FTDI: {
+            unsigned short div;
+            switch (baudrate) {
+                case 9600:   div = 0x4138; break;
+                case 19200:  div = 0x809C; break;
+                case 38400:  div = 0xC04E; break;
+                case 57600:  div = 0x0034; break;
+                case 115200: div = 0x001A; break;
+                default:     div = 0x001A; break;
+            }
+            setup[0] = 0x40; setup[1] = 0x03;
+            setup[2] = div & 0xFF; setup[3] = (div >> 8) & 0xFF;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x00; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, 0, 0, 0);
+            break;
+        }
+            
+        case SERIAL_CHIP_PL2303:
+        case SERIAL_CHIP_CDC:
+        default:
+            buf[0] = baudrate & 0xFF;
+            buf[1] = (baudrate >> 8) & 0xFF;
+            buf[2] = (baudrate >> 16) & 0xFF;
+            buf[3] = (baudrate >> 24) & 0xFF;
+            buf[4] = 0x00;
+            buf[5] = 0x00;
+            buf[6] = 0x08;
+            setup[0] = 0x21; setup[1] = 0x20; setup[2] = 0x00; setup[3] = 0x00;
+            setup[4] = 0x00; setup[5] = 0x00; setup[6] = 0x07; setup[7] = 0x00;
+            xhci_control_transfer(slot_id, setup, buf, 7, 0);
+            break;
+    }
+    
+    return 0;
 }
