@@ -1,0 +1,156 @@
+KESZEG 4 LANGUAGE DOCUMENTATION
+======================================================================
+
+Keszeg 4 is a simple interpreted language supporting variables, arrays,
+functions, references, and basic I/O and arithmetic operations.
+
+
+FUNCTION DECLARATIONS
+----------------------------------------------------------------------
+Functions are declared using `FUN` and ended with `EF`.
+Parameters are declared after the function name, using `@` for value
+parameters and `&` for reference parameters, followed by the name and
+type.
+
+[ Reference parameter example ]
+    FUN SWAP & A INT & B INT
+        @ TEMP INT
+        TEMP = A
+        A = B
+        B = TEMP
+    EF
+
+[ Value parameter example ]
+    FUN ADD @ X INT @ Y INT
+        @ RESULT INT
+        RESULT = X + Y
+        print $ RESULT
+    EF
+
+
+VARIABLES
+----------------------------------------------------------------------
+Variables are declared with `@ name TYPE`.
+Supported types: `INT`, `FLOAT`, `BYTE`, `IARRAY`, `FARRAY`, `STRING`.
+
+    @ X INT
+    @ ARR IARRAY
+
+
+REFERENCES
+----------------------------------------------------------------------
+Reference parameters allow passing variables by reference to functions.
+Use `& name TYPE` in the function declaration. When calling, pass the
+variable name.
+
+    FUN INCREMENT & X INT
+        X += 1
+    EF
+
+    CALL INCREMENT X
+
+
+INSTRUCTIONS
+----------------------------------------------------------------------
+
+[ Assignment ]
+* X = 5                -- Assigns 5 to X.
+* X = Y                -- Assigns value of Y to X.
+
+[ Arithmetic ]
+* X = Y + Z            -- Adds Y and Z, stores in X.
+* X = Y - Z
+* X = Y * Z
+* X = Y / Z
+* X = Y % Z
+* X += Y, X -= Y, X *= Y, X /= Y, X %= Y
+
+[ Arrays ]
+* ARR : 2 <- 10        -- Sets ARR[2] to 10.
+* X <- ARR : 2         -- Loads ARR[2] into X.
+* X sizeof ARR         -- Stores size of ARR in X.
+* free ARR             -- Clears array contents.
+
+[ String Operations ]
+* cat stringvar const Hello      -- Appends "Hello" to stringvar.
+* cat stringvar string othervar  -- Appends contents of othervar to
+                                    stringvar.
+
+[ Input/Output ]
+* print $ X              -- Prints X numerically.
+* print ascii X          -- Prints X as ASCII character.
+* print string STR       -- Prints string variable.
+* print const Hello      -- Prints "Hello".
+* println ...            -- Same as print, but adds newline.
+* input $ X              -- Reads numeric input into X.
+* input ascii X          -- Reads a character into X.
+* input string STR       -- Reads a line into string variable.
+* clear                  -- Clears the screen.
+* print serial X         -- [Mulloway] Sends contents of X string to
+                            serial COM1 output
+* input serial X [Y]     -- [Mulloway] Reads Y bytes to X string from
+                            serial COM1 port. If Y is not present, it
+                            reads all currently available bytes.
+* print usb STR          -- [Mulloway] Sends string STR to USB serial
+                            output.
+* input usb X [Y]        -- [Mulloway] Reads Y bytes from USB serial
+                            to X string. Blocks until data is
+                            available. If Y is not present, it reads
+                            all currently available bytes.
+
+[ File Operations ]
+* save iarray ARR path   -- Saves integer array to file.
+* load iarray ARR path   -- Loads integer array from file.
+* save string STR path   -- Saves string to file.
+* load string STR path   -- Loads string from file.
+
+[ Control Flow ]
+* if X = Y ... end
+* while X < Y ... end
+
+[ Function Calls ]
+* call FUNC X Y          -- Calls FUNC with arguments X and Y.
+* X <- call FUNC Y Z     -- Calls FUNC with Y, Z, stores return
+                            value in X.
+
+[ Return ]
+* return X               -- Returns value X from function.
+
+[ Random ]
+* random X 10            -- Sets X to random integer in [0, 10).
+
+[ Sleep ]
+* sleep 1000             -- Pauses execution for 1000 milliseconds.
+
+[ Exec ]
+* exec const ls -l       -- Executes a command based on the
+                            interpreter's environment.
+* exec string STR        -- Executes command from string variable.
+
+
+SYNTAX NOTES
+----------------------------------------------------------------------
+
+[ Comments ]
+Any text after a `#` character on a line is treated as a comment and
+ignored by the interpreter.
+
+[ Escaped Characters ]
+In string constants, you can use escape sequences:
+* \n for newline
+* \t for tab
+* \s for space
+* \h for #
+* \c for ,
+* Uppercase versions like \N, \T, etc. are also supported.
+
+[ Multiple Instructions per Line ]
+You can write multiple instructions on a single line by separating them
+with a comma `,`.
+
+
+NOTES
+----------------------------------------------------------------------
+* All variable, function, type and instruction names are
+  case-insensitive.
+* Execution always starts from the `main` function.
