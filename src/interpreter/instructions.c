@@ -7,6 +7,7 @@
 #include <system/storage.h>
 #include <apps/runtime.h>
 #include <drivers/serial.h>
+#include <drivers/usb.h>
 
 // Usually provided by the standard library.
 
@@ -1276,6 +1277,41 @@ void interpreter_execute_input(Interpreter_Instance* instance, char** tokens, in
         instance->serial_bytes_to_read = byte_count;
         instance->serial_bytes_read = 0;
     }
+    else if (interpreter_ci_strcmp(mode, "usb") == 0) {
+        if (token_count < 4) {
+            printf("Error: INPUT usb requires variable name and byte count.\n");
+            interpreter_halt();
+            return;
+        }
+        
+        Interpreter_Value* str_var = interpreter_get_variable(instance, var_name);
+        if (!str_var || str_var->type != TYPE_STRING) {
+            printf("Error: INPUT usb: Variable is not a string.\n");
+            interpreter_halt();
+            return;
+        }
+        
+        Interpreter_Value byte_count_val = interpreter_get_value_of_token(instance, tokens[3]);
+        if (byte_count_val.type != TYPE_INT && byte_count_val.type != TYPE_BYTE) {
+            printf("Error: INPUT usb: Byte count must be integer or byte.\n");
+            interpreter_halt();
+            return;
+        }
+        
+        int byte_count = (byte_count_val.type == TYPE_INT) ? byte_count_val.i : byte_count_val.b;
+        if (byte_count < 0 || byte_count > INTERPRETER_MAX_ARRAY_SIZE) {
+            printf("Error: INPUT usb: Invalid byte count.\n");
+            interpreter_halt();
+            return;
+        }
+        
+        instance->waiting_for_input = 1;
+        instance->input_variable_name = (char*)var_name;
+        instance->input_ready = 0;
+        instance->input_mode = INPUT_MODE_USB_SERIAL;
+        instance->serial_bytes_to_read = byte_count;
+        instance->serial_bytes_read = 0;
+    }
     else {
         printf("Error: Unknown INPUT mode.\n");
         interpreter_halt();
@@ -1508,6 +1544,20 @@ void interpreter_execute_print(Interpreter_Instance* instance, char** tokens, in
             return;
         }
         com1_write(val->string.data, val->string.size);
+    }
+    else if (interpreter_ci_strcmp(mode, "usb") == 0) {
+        if (token_count < 3) {
+            printf("Error: PRINT usb requires a variable name.\n");
+            interpreter_halt();
+            return;
+        }
+        Interpreter_Value* val = interpreter_get_variable(instance, tokens[2]);
+        if (!val || val->type != TYPE_STRING) {
+            printf("Error: PRINT usb: Variable is not a string.\n");
+            interpreter_halt();
+            return;
+        }
+        usb_serial_write(val->string.data, val->string.size);
     }
     else {
         printf("Error: Unknown PRINT mode.\n");

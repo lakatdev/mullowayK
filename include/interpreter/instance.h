@@ -10,7 +10,8 @@ typedef enum {
     INPUT_MODE_STRING,
     INPUT_MODE_NUMERIC,
     INPUT_MODE_ASCII,
-    INPUT_MODE_SERIAL
+    INPUT_MODE_SERIAL,
+    INPUT_MODE_USB_SERIAL
 } Interpreter_InputMode;
 
 typedef struct {
