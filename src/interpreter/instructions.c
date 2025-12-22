@@ -1278,8 +1278,8 @@ void interpreter_execute_input(Interpreter_Instance* instance, char** tokens, in
         instance->serial_bytes_read = 0;
     }
     else if (interpreter_ci_strcmp(mode, "usb") == 0) {
-        if (token_count < 4) {
-            printf("Error: INPUT usb requires variable name and byte count.\n");
+        if (token_count < 3) {
+            printf("Error: INPUT usb requires a variable name.\n");
             interpreter_halt();
             return;
         }
@@ -1291,18 +1291,20 @@ void interpreter_execute_input(Interpreter_Instance* instance, char** tokens, in
             return;
         }
         
-        Interpreter_Value byte_count_val = interpreter_get_value_of_token(instance, tokens[3]);
-        if (byte_count_val.type != TYPE_INT && byte_count_val.type != TYPE_BYTE) {
-            printf("Error: INPUT usb: Byte count must be integer or byte.\n");
-            interpreter_halt();
-            return;
-        }
-        
-        int byte_count = (byte_count_val.type == TYPE_INT) ? byte_count_val.i : byte_count_val.b;
-        if (byte_count < 0 || byte_count > INTERPRETER_MAX_ARRAY_SIZE) {
-            printf("Error: INPUT usb: Invalid byte count.\n");
-            interpreter_halt();
-            return;
+        int byte_count = -1;
+        if (token_count >= 4) {
+            Interpreter_Value byte_count_val = interpreter_get_value_of_token(instance, tokens[3]);
+            if (byte_count_val.type != TYPE_INT && byte_count_val.type != TYPE_BYTE) {
+                printf("Error: INPUT usb: Byte count must be integer or byte.\n");
+                interpreter_halt();
+                return;
+            }
+            byte_count = (byte_count_val.type == TYPE_INT) ? byte_count_val.i : byte_count_val.b;
+            if (byte_count < 0 || byte_count > INTERPRETER_MAX_ARRAY_SIZE) {
+                printf("Error: INPUT usb: Invalid byte count.\n");
+                interpreter_halt();
+                return;
+            }
         }
         
         instance->waiting_for_input = 1;

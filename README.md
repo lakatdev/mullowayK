@@ -33,9 +33,10 @@ MullowayK is a hobby x86 operating system written from scratch in C. It features
 
 ### Hardware Features
 - **Graphics Support** - Custom VGA graphics driver with framebuffer
-- **Keyboard Input** - PS/2 keyboard driver with interrupt handling
-- **Mouse Support** - PS/2 mouse driver for desktop interaction
-- **Serial Port Communication** - COM1 serial port for I/O operations
+- **Keyboard Input** - PS/2 and USB keyboard support (UHCI/EHCI/xHCI)
+- **Mouse Support** - PS/2 and USB mouse support (UHCI/EHCI/xHCI)
+- **Serial Port Communication** - COM1 and USB serial support (UHCI/EHCI/xHCI)
+
 - **Real-Time Clock** - System timing and date/time functionality
 - **SSE Support** - SSE for enhanced performance
 
@@ -143,7 +144,7 @@ The built-in Keszeg 4 interpreter supports:
 
 - **Data Types**: `int`, `float`, `byte`, `string`, arrays
 - **Control Structures**: `IF`/`ELSE`, loops, function calls
-- **I/O Operations**: `PRINT`, `PRINTLN`, `INPUT`, file operations
+- **I/O Operations**: `PRINT`, `PRINTLN`, `INPUT`, file operations, USB serial I/O
 - **File System**: `LOAD`, `SAVE` operations for persistent storage
 - **Mathematical Operations**: Basic arithmetic and comparison operators
 - **Memory Management**: Dynamic variable allocation and cleanup
