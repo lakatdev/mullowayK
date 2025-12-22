@@ -1288,13 +1288,9 @@ void usb_poll_legacy(void)
     }
 }
 
-void usb_serial_write_legacy(const unsigned char* data, unsigned int size)
+
+static void uhci_serial_write(usb_device_t* dev, const unsigned char* data, unsigned int size)
 {
-    if (usb_serial_idx < 0) return;
-    
-    usb_device_t* dev = &usb_devices[usb_serial_idx];
-    if (!dev->configured) return;
-    
     uhci_td_t* td = alloc_td();
     unsigned char* buf = data_buffer;
     
@@ -1319,6 +1315,70 @@ void usb_serial_write_legacy(const unsigned char* data, unsigned int size)
         frame_list[i] = 0x00000001;
     }
 }
+
+static void ehci_serial_write(usb_device_t* dev, const unsigned char* data, unsigned int size)
+{
+    ehci_qtd_t* qtd;
+    ehci_qh_t* transfer_qh;
+    static unsigned char ehci_bulk_toggle[4] = {0, 0, 0, 0};
+    int dev_idx = dev->address - 1;
+    int timeout;
+    
+    if (dev_idx < 0 || dev_idx >= 4) return;
+    
+    if (size > 64) size = 64;
+    memcpy(data_buffer, data, size);
+    
+    qtd = ehci_alloc_qtd();
+    transfer_qh = ehci_alloc_qh();
+    
+    qtd->buffer[0] = (unsigned int)data_buffer;
+    qtd->token = EHCI_QTD_ACTIVE | (EHCI_QTD_PID_OUT << 8) | (3 << 10) | (size << 16) | (ehci_bulk_toggle[dev_idx] << 31);
+    qtd->next_qtd = 0x01;
+    qtd->alt_qtd = 0x01;
+    
+    transfer_qh->horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+    transfer_qh->endpoint_char = (size << 16) | (0 << 14) | (2 << 12) | ((dev->endpoint_out & 0x0F) << 8) | dev->address;
+    transfer_qh->endpoint_caps = (1 << 30);
+    transfer_qh->next_qtd = (unsigned int)qtd;
+    transfer_qh->alt_qtd = 0x01;
+    transfer_qh->token = ehci_bulk_toggle[dev_idx] << 31;
+    
+    ehci_async_qh.horiz_link = ((unsigned int)transfer_qh) | 0x02;
+    
+    timeout = 1000;
+    while (timeout-- > 0) {
+        if (!(qtd->token & EHCI_QTD_ACTIVE)) {
+            ehci_async_qh.horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+            
+            if (qtd->token & EHCI_QTD_HALTED) {
+                return;
+            }
+            
+            ehci_bulk_toggle[dev_idx] ^= 1;
+            return;
+        }
+        usb_delay(1);
+    }
+    
+    ehci_async_qh.horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+}
+
+void usb_serial_write_legacy(const unsigned char* data, unsigned int size)
+{
+    if (usb_serial_idx < 0) return;
+    
+    usb_device_t* dev = &usb_devices[usb_serial_idx];
+    if (!dev->configured) return;
+    
+    if (uhci_found) {
+        uhci_serial_write(dev, data, size);
+    }
+    else if (ehci_found) {
+        ehci_serial_write(dev, data, size);
+    }
+}
+
 
 int usb_serial_read_legacy(unsigned char* data, unsigned int size)
 {
@@ -1350,9 +1410,9 @@ void usb_serial_write_byte_legacy(unsigned char c)
 
 void usb_serial_write_string_legacy(const char* str)
 {
-    while (*str) {
-        usb_serial_write_byte_legacy(*str++);
-    }
+    int len = 0;
+    while (str[len]) len++;
+    usb_serial_write_legacy((const unsigned char*)str, len);
 }
 
 int usb_serial_set_baudrate_legacy(unsigned int baudrate)
