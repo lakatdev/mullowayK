@@ -398,6 +398,7 @@ void interpreter_declare_variable(Interpreter_Instance* instance, const char* na
                         var->value.farray.size = 0;
                         break;
                 }
+                return;
             }
             else {
                 printf("Error: Variable already declared in current scope\n");
