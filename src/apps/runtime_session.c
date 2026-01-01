@@ -442,7 +442,7 @@ void runtime_session_continue_execution(RuntimeSession* session)
     
     Interpreter_Instance* current = runtime_session_get_current_instance(session);
     if (session->executing && current && current->is_running) {
-        int result = interpreter_execute_chunk(current, 32);
+        int result = interpreter_execute_chunk(current, RUNTIME_EXECUTION_CHUNK_SIZE);
         if (result == 0) {
             session->instance_stack_top--;
             if (session->instance_stack_top < 0) {

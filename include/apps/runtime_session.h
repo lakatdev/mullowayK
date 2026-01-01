@@ -7,6 +7,7 @@
 #define APP_RUNTIME_WIDTH 80
 #define APP_RUNTIME_HEIGHT 25
 #define MAX_RUNTIME_SESSIONS 9
+#define RUNTIME_EXECUTION_CHUNK_SIZE 128
 
 typedef struct RuntimeSession {
     Interpreter_Instance instances[2];

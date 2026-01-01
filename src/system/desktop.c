@@ -737,17 +737,21 @@ void init_desktop()
 
     add_menu((Menu) { .name = "Desktop" });
 
+    unsigned long long int next_frame = system_uptime() + 15;
     while (desktop_running) {
+        if (system_uptime() >= next_frame) {
+            next_frame = system_uptime() + 15;
+            if (update_required) {
+                draw_desktop();
+                update_required = 0;
+            }
+        }
+        
         for (int i = 0; i < application_count; i++) {
             if (applications[i].visible && applications[i].is_runtime) {
                 app_runtime_set_window_id(applications[i].window_id);
                 app_runtime_process_deferred();
             }
-        }
-        
-        if (update_required) {
-            draw_desktop();
-            update_required = 0;
         }
     }
 }
