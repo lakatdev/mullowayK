@@ -60,6 +60,19 @@ void system_draw_rect(int x, int y, int width, int height, unsigned char r, unsi
     }
 }
 
+void system_draw_rect_gradient_v(int x, int y, int width, int height, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2)
+{
+    for (int j = 0; j < height; j++) {
+        int r = r1 + ((r2 - r1) * j) / height;
+        int g = g1 + ((g2 - g1) * j) / height;
+        int b = b1 + ((b2 - b1) * j) / height;
+        
+        for (int i = 0; i < width; i++) {
+            system_draw_pixel(x + i, y + j, r, g, b);
+        }
+    }
+}
+
 void system_draw_thin_line(int x1, int y1, int x2, int y2, unsigned char r, unsigned char g, unsigned char b)
 {
     int dx = abs(x2 - x1);

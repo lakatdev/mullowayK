@@ -377,12 +377,17 @@ void mouse_click(int x, int y)
 
 void draw_panel()
 {
-    system_draw_rect(0, 0, WIDTH, 30, THEME_BACKGROUND_COLOR);
+    system_draw_rect_gradient_v(0, 0, WIDTH, 15, 255, 255, 255, THEME_BACKGROUND_COLOR);
+    system_draw_rect_gradient_v(0, 15, WIDTH, 15, THEME_BACKGROUND_COLOR, 200, 200, 160);
     system_draw_image(20, 2, 60, 26, mlogo_26, THEME_TEXT_COLOR);
 
     for (int i = 0; i < menu_count; i++) {
         if (i == selected_menu) {
-            system_draw_line((i + 1) * 100, 25, (i + 1) * 100 + (strlen(menus[i].name) + 1) * 12, 25, 5, THEME_HIGHLIGHT_COLOR);
+            int menu_x = (i + 1) * 100;
+            int menu_width = (strlen(menus[i].name) + 1) * 12;
+            system_draw_rect_gradient_v(menu_x, 0, menu_width, 15, 200, 200, 160, THEME_BACKGROUND_COLOR);
+            system_draw_rect_gradient_v(menu_x, 15, menu_width, 15, THEME_BACKGROUND_COLOR, 255, 255, 255);
+            
             system_draw_rect((i + 1) * 100 - 3, 27, 206, menus[i].item_count * 30 + 6, THEME_TEXT_COLOR);
             for (int j = 0; j < menus[i].item_count; j++) {
                 system_draw_rect((i + 1) * 100, 30 + j * 30, 200, 30, THEME_BACKGROUND_COLOR);
