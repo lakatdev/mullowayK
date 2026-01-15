@@ -311,7 +311,8 @@ void app_editor_set_length(unsigned int length)
 {
     if (length < sizeof(app_editor_buffer)) {
         app_editor_buffer_size = length;
-    } else {
+    }
+    else {
         app_editor_buffer_size = sizeof(app_editor_buffer) - 1;
     }
     app_editor_buffer[app_editor_buffer_size] = '\0';

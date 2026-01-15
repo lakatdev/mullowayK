@@ -439,6 +439,10 @@ void draw_desktop()
             if (applications[i].visible == 1 && applications[i].z_order == z) {
                 int is_selected = (i == selected_application);
                 
+                system_draw_rect(applications[i].x - 1, applications[i].y - 31, 
+                               applications[i].width + 2, applications[i].height + 31, 
+                               160, 160, 160);
+                
                 system_draw_rect(applications[i].x, applications[i].y, applications[i].width, applications[i].height, 255, 255, 255);
                 
                 if (is_selected) {
@@ -623,7 +627,8 @@ int desktop_create_runtime_window(const char* title)
             i++;
         }
         new_app.name[i] = '\0';
-    } else {
+    }
+    else {
         memcpy(new_app.name, "Runtime", 8);
     }
     new_app.init = app_runtime_init;
