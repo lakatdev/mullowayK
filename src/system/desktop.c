@@ -508,11 +508,13 @@ void draw_desktop()
         system_draw_text(dialog_x + 72, dialog_y + 35, "Are you sure?", 24, THEME_TEXT_COLOR);
 
         system_draw_rect(dialog_x + 55 - 2, dialog_y + 60 - 2, 80 + 4, 25 + 4, THEME_TEXT_COLOR);
-        system_draw_rect(dialog_x + 55, dialog_y + 60, 80, 25, THEME_BACKGROUND_COLOR);
+        system_draw_rect_gradient_v(dialog_x + 55, dialog_y + 60, 80, 12, 255, 255, 255, THEME_BACKGROUND_COLOR);
+        system_draw_rect_gradient_v(dialog_x + 55, dialog_y + 72, 80, 13, THEME_BACKGROUND_COLOR, 200, 200, 160);
         system_draw_text(dialog_x + 80, dialog_y + 78, "Yes", 20, THEME_TEXT_COLOR);
 
         system_draw_rect(dialog_x + 165 - 2, dialog_y + 60 - 2, 80 + 4, 25 + 4, THEME_TEXT_COLOR);
-        system_draw_rect(dialog_x + 165, dialog_y + 60, 80, 25, THEME_BACKGROUND_COLOR);
+        system_draw_rect_gradient_v(dialog_x + 165, dialog_y + 60, 80, 12, 255, 255, 255, THEME_BACKGROUND_COLOR);
+        system_draw_rect_gradient_v(dialog_x + 165, dialog_y + 72, 80, 13, THEME_BACKGROUND_COLOR, 200, 200, 160);
         system_draw_text(dialog_x + 193, dialog_y + 78, "No", 20, THEME_TEXT_COLOR);
     }
     
