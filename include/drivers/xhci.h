@@ -9,6 +9,16 @@
 #define XHCI_HCCPARAMS1    0x10
 #define XHCI_DBOFF         0x14
 #define XHCI_RTSOFF        0x18
+#define XHCI_HCCPARAMS2    0x1C
+
+#define XHCI_EXT_CAP_LEGACY    1
+#define XHCI_EXT_CAP_PROTOCOL  2
+
+#define XHCI_USBLEGSUP         0x00
+#define XHCI_USBLEGCTLSTS      0x04
+
+#define XHCI_USBLEGSUP_BIOS_OWNED  (1 << 16)
+#define XHCI_USBLEGSUP_OS_OWNED    (1 << 24)
 
 #define XHCI_USBCMD        0x00
 #define XHCI_USBSTS        0x04

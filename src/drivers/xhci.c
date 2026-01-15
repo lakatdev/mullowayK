@@ -100,6 +100,58 @@ static void xhci_write64(unsigned int base, unsigned int offset, unsigned long l
     *(volatile unsigned int*)(base + offset + 4) = (unsigned int)(val >> 32);
 }
 
+static void xhci_take_ownership(void)
+{
+    unsigned int hccparams1 = xhci_read32(xhci_base, XHCI_HCCPARAMS1);
+    unsigned int ext_cap_ptr = (hccparams1 >> 16) & 0xFFFF;
+    
+    if (ext_cap_ptr == 0) {
+        return;
+    }
+    
+    ext_cap_ptr <<= 2;
+    unsigned int cap_base = xhci_base + ext_cap_ptr;
+    int max_iterations = 32;
+    
+    while (max_iterations-- > 0) {
+        unsigned int cap = xhci_read32(cap_base, 0);
+        unsigned char cap_id = cap & 0xFF;
+        unsigned char next_ptr = (cap >> 8) & 0xFF;
+        
+        if (cap_id == XHCI_EXT_CAP_LEGACY) {
+            unsigned int legsup = xhci_read32(cap_base, XHCI_USBLEGSUP);
+            
+            if (legsup & XHCI_USBLEGSUP_BIOS_OWNED) {
+                printf("xHCI: Requesting BIOS handoff.\n");
+                xhci_write32(cap_base, XHCI_USBLEGSUP, legsup | XHCI_USBLEGSUP_OS_OWNED);
+                
+                int timeout = 1000;
+                while (timeout-- > 0) {
+                    legsup = xhci_read32(cap_base, XHCI_USBLEGSUP);
+                    if (!(legsup & XHCI_USBLEGSUP_BIOS_OWNED)) {
+                        printf("xHCI: BIOS handoff complete.\n");
+                        break;
+                    }
+                    xhci_delay(1);
+                }
+                
+                if (timeout <= 0) {
+                    printf("xHCI: BIOS handoff timeout, using violence.\n");
+                    xhci_write32(cap_base, XHCI_USBLEGSUP, XHCI_USBLEGSUP_OS_OWNED);
+                }
+                
+                xhci_write32(cap_base, XHCI_USBLEGCTLSTS, 0);
+            }
+            return;
+        }
+        
+        if (next_ptr == 0) {
+            break;
+        }
+        cap_base += (next_ptr << 2);
+    }
+}
+
 static int find_xhci_controller(void)
 {
     for (unsigned char bus = 0; bus < 8; bus++) {
@@ -243,7 +295,10 @@ static void xhci_start(void)
     cmd |= XHCI_CMD_RUN;
     xhci_write32(xhci_op_base, XHCI_USBCMD, cmd);
     
-    xhci_delay(100);
+    int timeout = 500;
+    while ((xhci_read32(xhci_op_base, XHCI_USBSTS) & XHCI_STS_HCH) && timeout-- > 0) {
+        xhci_delay(1);
+    }
     
     if (xhci_read32(xhci_op_base, XHCI_USBSTS) & XHCI_STS_HCH) {
         printf("xHCI: Controller failed to start\n");
@@ -1042,6 +1097,7 @@ void init_usb(void)
     
     if (find_xhci_controller()) {
         xhci_found = 1;
+        xhci_take_ownership();
         xhci_reset();
         xhci_init_rings();
         xhci_start();
