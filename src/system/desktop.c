@@ -318,8 +318,10 @@ void mouse_click(int x, int y)
                     invalidate();
                 }
                 
-                if (x >= applications[clicked_app].x && x < applications[clicked_app].x + 30 &&
-                    y >= applications[clicked_app].y - 30 && y < applications[clicked_app].y) {
+                int btn_size = 20;
+                int btn_y = applications[clicked_app].y - 25;
+                
+                if (x >= applications[clicked_app].x + 5 && x < applications[clicked_app].x + 5 + btn_size && y >= btn_y && y < btn_y + btn_size) {
                     if (applications[clicked_app].is_runtime) {
                         app_runtime_set_window_id(applications[clicked_app].window_id);
                         applications[clicked_app].on_close();
@@ -341,15 +343,13 @@ void mouse_click(int x, int y)
                     invalidate();
                     return;
                 }
-                else if (x >= applications[clicked_app].x + 30 && x < applications[clicked_app].x + 60 &&
-                    y >= applications[clicked_app].y - 30 && y < applications[clicked_app].y) {
+                else if (x >= applications[clicked_app].x + 30 && x < applications[clicked_app].x + 30 + btn_size && y >= btn_y && y < btn_y + btn_size) {
                     moving_application = clicked_app;
                     move_offset_x = x - applications[clicked_app].x;
                     move_offset_y = y - applications[clicked_app].y;
                     return;
                 }
-                else if (x >= applications[clicked_app].x + 60 && x < applications[clicked_app].x + 90 &&
-                    y >= applications[clicked_app].y - 30 && y < applications[clicked_app].y) {
+                else if (x >= applications[clicked_app].x + 55 && x < applications[clicked_app].x + 55 + btn_size && y >= btn_y && y < btn_y + btn_size) {
                     resizing_application = clicked_app;
                     set_mouse_pos(applications[clicked_app].x + applications[clicked_app].width, 
                                  applications[clicked_app].y + applications[clicked_app].height);
@@ -439,17 +439,38 @@ void draw_desktop()
             if (applications[i].visible == 1 && applications[i].z_order == z) {
                 int is_selected = (i == selected_application);
                 
+                system_draw_rect(applications[i].x, applications[i].y, applications[i].width, applications[i].height, 255, 255, 255);
+                
                 if (is_selected) {
-                    system_draw_rect(applications[i].x - 3, applications[i].y - 33, 
-                                   applications[i].width + 6, applications[i].height + 36, 
-                                   THEME_HIGHLIGHT_COLOR);
-                } else {
-                    system_draw_rect(applications[i].x - 3, applications[i].y - 33, 
-                                   applications[i].width + 6, applications[i].height + 36, 
-                                   THEME_BACKGROUND_COLOR);
+                    system_draw_rect_gradient_v(applications[i].x, applications[i].y - 30, applications[i].width, 15, 255, 255, 255, THEME_BACKGROUND_COLOR);
+                    system_draw_rect_gradient_v(applications[i].x, applications[i].y - 15, applications[i].width, 15, THEME_BACKGROUND_COLOR, 200, 200, 160);
+                }
+                else {
+                    system_draw_rect_gradient_v(applications[i].x, applications[i].y - 30, applications[i].width, 15, 240, 240, 240, 220, 220, 200);
+                    system_draw_rect_gradient_v(applications[i].x, applications[i].y - 15, applications[i].width, 15, 220, 220, 200, 200, 200, 180);
                 }
                 
-                int text_offset = is_selected ? 95 : 5;
+                if (is_selected) {
+                    int buttons_width = 90;
+                    if (applications[i].width >= buttons_width) {
+                        int btn_size = 20;
+                        int btn_y = applications[i].y - 25;
+                        int btn_x = applications[i].x + 5;
+                        
+                        system_draw_rect_gradient_v(btn_x, btn_y, btn_size, btn_size / 2, 255, 180, 180, 255, 100, 100);
+                        system_draw_rect_gradient_v(btn_x, btn_y + btn_size / 2, btn_size, btn_size / 2, 255, 100, 100, 200, 50, 50);
+                        
+                        btn_x += btn_size + 5;
+                        system_draw_rect_gradient_v(btn_x, btn_y, btn_size, btn_size / 2, 180, 255, 180, 100, 255, 100);
+                        system_draw_rect_gradient_v(btn_x, btn_y + btn_size / 2, btn_size, btn_size / 2, 100, 255, 100, 50, 200, 50);
+                        
+                        btn_x += btn_size + 5;
+                        system_draw_rect_gradient_v(btn_x, btn_y, btn_size, btn_size / 2, 180, 180, 255, 100, 100, 255);
+                        system_draw_rect_gradient_v(btn_x, btn_y + btn_size / 2, btn_size, btn_size / 2, 100, 100, 255, 50, 50, 200);
+                    }
+                }
+                
+                int text_offset = is_selected ? 80 : 5;
                 int available_width = applications[i].width - text_offset;
                 int max_chars = available_width / 12;
                 if (max_chars > 0) {
@@ -467,15 +488,6 @@ void draw_desktop()
                     else {
                         system_draw_text(applications[i].x + text_offset, 
                                        applications[i].y - 10, applications[i].name, 24, THEME_TEXT_COLOR);
-                    }
-                }
-                
-                if (is_selected) {
-                    int buttons_width = 90;
-                    if (applications[i].width >= buttons_width) {
-                        system_draw_rect(applications[i].x, applications[i].y - 30, 30, 30, 255, 0, 0);
-                        system_draw_rect(applications[i].x + 30, applications[i].y - 30, 30, 30, 0, 255, 0);
-                        system_draw_rect(applications[i].x + 60, applications[i].y - 30, 30, 30, 0, 0, 255);
                     }
                 }
                 
