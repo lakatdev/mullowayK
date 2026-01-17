@@ -9,7 +9,7 @@ extern char interpreter_public_buffer[];
 void interpreter_instance_init(Interpreter_Instance* instance);
 int interpreter_load_code(Interpreter_Instance* instance, const char* code);
 int interpreter_execute(Interpreter_Instance* instance);
-int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructions);
+int interpreter_execute_until(Interpreter_Instance* instance, unsigned long long int deadline_tick);
 void interpreter_stop(Interpreter_Instance* instance);
 void interpreter_dump_tokens(Interpreter_Instance* instance);
 int interpreter_parse_functions(Interpreter_Instance* instance);

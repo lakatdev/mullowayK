@@ -5,6 +5,7 @@
 #include <system/interface.h>
 #include <system/memory.h>
 #include <system/desktop.h>
+#include <system/interrupts.h>
 
 static RuntimeSession* session_slots[MAX_RUNTIME_SESSIONS] = {0};
 static int session_pool_initialized = 0;
@@ -442,7 +443,8 @@ void runtime_session_continue_execution(RuntimeSession* session)
     
     Interpreter_Instance* current = runtime_session_get_current_instance(session);
     if (session->executing && current && current->is_running) {
-        int result = interpreter_execute_chunk(current, RUNTIME_EXECUTION_CHUNK_SIZE);
+        unsigned long long int deadline = get_tick_count() + RUNTIME_TIME_SLICE_MS;
+        int result = interpreter_execute_until(current, deadline);
         if (result == 0) {
             session->instance_stack_top--;
             if (session->instance_stack_top < 0) {
@@ -477,6 +479,38 @@ void runtime_session_process(RuntimeSession* session)
     }
     else if (session->executing) {
         runtime_session_continue_execution(session);
+    }
+}
+
+void runtime_session_process_all(void)
+{
+    for (int i = 0; i < MAX_RUNTIME_SESSIONS; i++) {
+        if (session_slots[i] && session_slots[i]->active) {
+            if (session_slots[i]->execution_requested || session_slots[i]->executing) {
+                runtime_session_process(session_slots[i]);
+            }
+        }
+    }
+}
+
+void runtime_session_process_all_burst(unsigned int max_ms)
+{
+    unsigned long long int deadline = get_tick_count() + max_ms;
+    
+    int any_running = 1;
+    while (any_running && get_tick_count() < deadline) {
+        any_running = 0;
+        for (int i = 0; i < MAX_RUNTIME_SESSIONS; i++) {
+            if (session_slots[i] && session_slots[i]->active) {
+                if (session_slots[i]->execution_requested || session_slots[i]->executing) {
+                    runtime_session_process(session_slots[i]);
+                    if (session_slots[i]->executing) {
+                        any_running = 1;
+                    }
+                }
+            }
+            if (get_tick_count() >= deadline) break;
+        }
     }
 }
 

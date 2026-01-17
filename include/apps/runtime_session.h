@@ -7,7 +7,7 @@
 #define APP_RUNTIME_WIDTH 80
 #define APP_RUNTIME_HEIGHT 25
 #define MAX_RUNTIME_SESSIONS 9
-#define RUNTIME_EXECUTION_CHUNK_SIZE 128
+#define RUNTIME_TIME_SLICE_MS 50
 
 typedef struct RuntimeSession {
     Interpreter_Instance instances[2];
@@ -35,6 +35,8 @@ typedef struct RuntimeSession {
     char load_second;
     
     int window_id;
+    
+    unsigned long long int time_slice_end;
 } RuntimeSession;
 
 void runtime_session_init(RuntimeSession* session);
@@ -59,6 +61,8 @@ void runtime_session_clear_buffer(RuntimeSession* session);
 void runtime_session_request_input(RuntimeSession* session);
 void runtime_session_send_io(RuntimeSession* session);
 int runtime_session_push_instance_from_file(RuntimeSession* session, const char* filename);
+void runtime_session_process_all(void);
+void runtime_session_process_all_burst(unsigned int max_ms);
 
 Interpreter_Instance* runtime_session_get_current_instance(RuntimeSession* session);
 int runtime_session_get_active_count(void);

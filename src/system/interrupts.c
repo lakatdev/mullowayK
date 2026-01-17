@@ -7,6 +7,7 @@
 #include <drivers/keyboard.h>
 #include <system/exceptions.h>
 #include <apps/runtime.h>
+#include <apps/runtime_session.h>
 #include <drivers/usb.h>
 
 InterruptDescriptor idt[256];
@@ -336,6 +337,21 @@ void init_idt()
 
 unsigned long long int uptime = 0;
 unsigned long long int timer_ticks = 0;
+static unsigned int pit_frequency = 1000;
+
+void init_pit(unsigned int frequency)
+{
+    if (frequency < 19) frequency = 19;
+    if (frequency > 1193182) frequency = 1193182;
+    
+    pit_frequency = frequency;
+    unsigned int divisor = 1193182 / frequency;
+    
+    outb(0x43, 0x36);
+    outb(0x40, divisor & 0xFF);
+    outb(0x40, (divisor >> 8) & 0xFF);
+}
+
 void sleep(unsigned long long int ticks)
 {
     timer_ticks = ticks;
@@ -343,6 +359,11 @@ void sleep(unsigned long long int ticks)
 }
 
 unsigned long long int system_uptime()
+{
+    return uptime;
+}
+
+unsigned long long int get_tick_count()
 {
     return uptime;
 }

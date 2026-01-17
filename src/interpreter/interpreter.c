@@ -697,10 +697,10 @@ int interpreter_execute(Interpreter_Instance* instance)
         instance->instruction_count = 0;
     }
 
-    return interpreter_execute_chunk(instance, 32);
+    return interpreter_execute_until(instance, system_uptime() + 10);
 }
 
-int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructions)
+int interpreter_execute_until(Interpreter_Instance* instance, unsigned long long int deadline_tick)
 {
     if (instance->is_sleeping) {
         if (system_uptime() >= instance->sleep_until_tick) {
@@ -877,13 +877,12 @@ int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructio
         }
     }
 
-    int instructions_executed = 0;
     while (instance->execution_position < instance->parsed_line_count && 
            instance->execution_position >= 0 && 
            !instance->should_stop &&
            !instance->is_sleeping &&
            !instance->waiting_for_input &&
-           instructions_executed < max_instructions) {
+           system_uptime() < deadline_tick) {
         
         int token_count = instance->line_token_counts[instance->execution_position];
         
@@ -909,7 +908,6 @@ int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructio
                 instance->execution_position = instance->call_stack[instance->stack_pointer].return_address;
                 instance->stack_pointer--;
             }
-            instructions_executed++;
             continue; 
         }
 
@@ -935,7 +933,6 @@ int interpreter_execute_chunk(Interpreter_Instance* instance, int max_instructio
             instance->execution_position++;
         }
         
-        instructions_executed++;
         instance->instruction_count++;
     }
     

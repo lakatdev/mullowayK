@@ -191,13 +191,6 @@ void print_hex(unsigned int n)
     printf(foo);
 }
 
-void set_timer_freq(unsigned int divisor)
-{
-    outb(0x43, 0x36);
-    outb(0x40, divisor & 0xFF);
-    outb(0x40, divisor >> 8);
-}
-
 void attempt_shutdown()
 {
     acpi_poweroff();
@@ -263,7 +256,7 @@ void kernel_main(const void* multiboot_struct)
 
     // INTERNAL TIMER
 
-    set_timer_freq(1193);
+    init_pit(1000);
     init_idt();
 
     // USER INTERFACE

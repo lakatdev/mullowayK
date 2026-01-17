@@ -7,6 +7,7 @@
 #include <tools/userlib.h>
 #include <system/storage.h>
 #include <apps/runtime.h>
+#include <apps/runtime_session.h>
 
 unsigned char mlogo_26[] = {
     0x00, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x80, 0x00,
@@ -763,18 +764,15 @@ void init_desktop()
 
     unsigned long long int next_frame = system_uptime() + 15;
     while (desktop_running) {
+        /* Run interpreter sessions for a burst (~10ms), then check UI */
+        runtime_session_process_all_burst(10);
+        
+        /* Handle frame updates */
         if (system_uptime() >= next_frame) {
             next_frame = system_uptime() + 15;
             if (update_required) {
                 draw_desktop();
                 update_required = 0;
-            }
-        }
-        
-        for (int i = 0; i < application_count; i++) {
-            if (applications[i].visible && applications[i].is_runtime) {
-                app_runtime_set_window_id(applications[i].window_id);
-                app_runtime_process_deferred();
             }
         }
     }
