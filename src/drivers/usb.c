@@ -470,7 +470,8 @@ static int ehci_control_transfer(unsigned char addr, unsigned char* setup, unsig
         qtd_data->token = EHCI_QTD_ACTIVE | ((is_in ? EHCI_QTD_PID_IN : EHCI_QTD_PID_OUT) << 8) | (3 << 10) | (data_len << 16) | (1 << 31);  // Data toggle = 1
         qtd_data->next_qtd = (unsigned int)qtd_status;
         qtd_data->alt_qtd = 0x01;
-    } else {
+    }
+    else {
         qtd_setup->next_qtd = (unsigned int)qtd_status;
         qtd_setup->alt_qtd = 0x01;
     }

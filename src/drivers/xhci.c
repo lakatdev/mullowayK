@@ -490,7 +490,8 @@ static int xhci_configure_bulk_endpoint(int slot_id, int ep_num, int max_packet,
     
     if (is_in) {
         ep_ctx[2] = ((unsigned int)int_rings[ring_idx]) | int_ring_cycle[ring_idx]; 
-    } else {
+    }
+    else {
         ep_ctx[2] = ((unsigned int)bulk_out_rings[ring_idx]) | bulk_out_ring_cycle[ring_idx];
     }
 

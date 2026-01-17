@@ -274,7 +274,8 @@ void interpreter_parse_const_escapes(const char* src, char* dest, unsigned long 
                 case '\0':          si++; break;
                 default:            dest[di++] = src[si++]; break;
             }
-        } else {
+        }
+        else {
             dest[di++] = src[si++];
         }
     }
