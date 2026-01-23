@@ -389,7 +389,7 @@ void draw_panel()
             system_draw_rect_gradient_v(menu_x, 0, menu_width, 15, 200, 200, 160, THEME_BACKGROUND_COLOR);
             system_draw_rect_gradient_v(menu_x, 15, menu_width, 15, THEME_BACKGROUND_COLOR, 255, 255, 255);
             
-            system_draw_rect((i + 1) * 100 - 3, 27, 206, menus[i].item_count * 30 + 6, THEME_TEXT_COLOR);
+            system_draw_rect((i + 1) * 100 - 1, 29, 202, menus[i].item_count * 30 + 2, 160, 160, 160);
             for (int j = 0; j < menus[i].item_count; j++) {
                 system_draw_rect((i + 1) * 100, 30 + j * 30, 200, 30, THEME_BACKGROUND_COLOR);
                 system_draw_text((i + 1) * 100 + 5, 30 + j * 30 + 22, menus[i].items[j].name, 24, THEME_TEXT_COLOR);
@@ -440,9 +440,7 @@ void draw_desktop()
             if (applications[i].visible == 1 && applications[i].z_order == z) {
                 int is_selected = (i == selected_application);
                 
-                system_draw_rect(applications[i].x - 1, applications[i].y - 31, 
-                               applications[i].width + 2, applications[i].height + 31, 
-                               160, 160, 160);
+                system_draw_rect(applications[i].x - 1, applications[i].y - 31, applications[i].width + 2, applications[i].height + 31, 160, 160, 160);
                 
                 system_draw_rect(applications[i].x, applications[i].y, applications[i].width, applications[i].height, 255, 255, 255);
                 
@@ -520,16 +518,16 @@ void draw_desktop()
             }
         }
         
-        system_draw_rect(dialog_x - 3, dialog_y - 3, dialog_width + 6, dialog_height + 6, THEME_TEXT_COLOR);
+        system_draw_rect(dialog_x - 1, dialog_y - 1, dialog_width + 2, dialog_height + 2, 160, 160, 160);
         system_draw_rect(dialog_x, dialog_y, dialog_width, dialog_height, THEME_BACKGROUND_COLOR);
         system_draw_text(dialog_x + 72, dialog_y + 35, "Are you sure?", 24, THEME_TEXT_COLOR);
 
-        system_draw_rect(dialog_x + 55 - 2, dialog_y + 60 - 2, 80 + 4, 25 + 4, THEME_TEXT_COLOR);
+        system_draw_rect(dialog_x + 55 - 1, dialog_y + 60 - 1, 80 + 2, 25 + 2, 160, 160, 160);
         system_draw_rect_gradient_v(dialog_x + 55, dialog_y + 60, 80, 12, 255, 255, 255, THEME_BACKGROUND_COLOR);
         system_draw_rect_gradient_v(dialog_x + 55, dialog_y + 72, 80, 13, THEME_BACKGROUND_COLOR, 200, 200, 160);
         system_draw_text(dialog_x + 80, dialog_y + 78, "Yes", 20, THEME_TEXT_COLOR);
 
-        system_draw_rect(dialog_x + 165 - 2, dialog_y + 60 - 2, 80 + 4, 25 + 4, THEME_TEXT_COLOR);
+        system_draw_rect(dialog_x + 165 - 1, dialog_y + 60 - 1, 80 + 2, 25 + 2, 160, 160, 160);
         system_draw_rect_gradient_v(dialog_x + 165, dialog_y + 60, 80, 12, 255, 255, 255, THEME_BACKGROUND_COLOR);
         system_draw_rect_gradient_v(dialog_x + 165, dialog_y + 72, 80, 13, THEME_BACKGROUND_COLOR, 200, 200, 160);
         system_draw_text(dialog_x + 193, dialog_y + 78, "No", 20, THEME_TEXT_COLOR);
