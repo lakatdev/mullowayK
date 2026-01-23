@@ -183,7 +183,7 @@ VERSION INFORMATION
 ----------------------------------------------------------------------
 
 * Version: 2.2.3
-* Build Date: 2026-01-17
+* Build Date: 2026-01-23
 * Interpreter: Keszeg 4
 * Target Architecture: x86 (32-bit)
 
@@ -196,5 +196,5 @@ system programming, custom operating system development, and language
 interpreter implementation. The system showcases direct hardware
 control, custom memory management, and a complete desktop computing
 environment built from the ground up. This project is a personal
-hobby operating system. Please respect the educational nature.
+hobby operating system. Please respect the educational nature
 of this work.
