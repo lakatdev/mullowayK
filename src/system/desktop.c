@@ -762,10 +762,8 @@ void init_desktop()
 
     unsigned long long int next_frame = system_uptime() + 15;
     while (desktop_running) {
-        /* Run interpreter sessions for a burst (~10ms), then check UI */
         runtime_session_process_all_burst(10);
-        
-        /* Handle frame updates */
+
         if (system_uptime() >= next_frame) {
             next_frame = system_uptime() + 15;
             if (update_required) {
