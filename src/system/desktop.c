@@ -773,5 +773,7 @@ void init_desktop()
                 update_required = 0;
             }
         }
+        
+        __asm__ volatile("hlt");
     }
 }
