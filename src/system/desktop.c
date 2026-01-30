@@ -8,6 +8,7 @@
 #include <system/storage.h>
 #include <apps/runtime.h>
 #include <apps/runtime_session.h>
+#include <drivers/usb.h>
 
 unsigned char mlogo_26[] = {
     0x00, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x80, 0x00,
@@ -762,6 +763,7 @@ void init_desktop()
 
     unsigned long long int next_frame = system_uptime() + 15;
     while (desktop_running) {
+        usb_poll();
         runtime_session_process_all_burst(10);
 
         if (system_uptime() >= next_frame) {

@@ -159,6 +159,7 @@ typedef struct {
 } __attribute__((packed, aligned(16))) uhci_qh_t;
 
 // device info
+// 0 = uhci, 1 = ehci
 typedef struct {
     unsigned char address;
     unsigned char device_type;
@@ -168,8 +169,10 @@ typedef struct {
     unsigned char max_packet;
     unsigned char present;
     unsigned char configured;
+    int controller;
 } usb_device_t;
 
+static int current_enumeration_controller = 0;
 static unsigned short uhci_base = 0;
 static int uhci_found = 0;
 
@@ -209,6 +212,8 @@ static unsigned int frame_list[1024] __attribute__((aligned(4096)));
 static uhci_td_t td_pool[32] __attribute__((aligned(32)));
 static uhci_qh_t qh_pool[8] __attribute__((aligned(16)));
 static int td_next = 0;
+static int uhci_qh_next = 0;
+static uhci_qh_t* uhci_skeleton_qh;
 
 static unsigned char setup_buffer[8] __attribute__((aligned(16)));
 static unsigned char data_buffer[256] __attribute__((aligned(16)));
@@ -355,10 +360,11 @@ static void ehci_reset(void)
 static void ehci_init_async(void)
 {
     memset(&ehci_async_qh, 0, sizeof(ehci_async_qh));
-    ehci_async_qh.horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
+    ehci_async_qh.horiz_link = ((unsigned int)&ehci_async_qh) | 0x02; 
     ehci_async_qh.endpoint_char = (1 << 15);
     ehci_async_qh.next_qtd = 0x01;
     ehci_async_qh.alt_qtd = 0x01;
+    ehci_async_qh.token = 0;
     
     ehci_write32(EHCI_ASYNCLISTADDR, (unsigned int)&ehci_async_qh);
 }
@@ -405,10 +411,19 @@ static int ehci_reset_port(int port)
     if (!(status & EHCI_PORT_CCS)) {
         return 0;
     }
+
+    if ((status & EHCI_PORT_LINE_STAT) == (1 << 10)) {
+        printf("EHCI: Low-speed device on port ");
+        print_hex(port);
+        printf(", handing off to companion.\n");
+        status |= EHCI_PORT_OWNER;
+        ehci_write32(portsc_addr, status);
+        return 0;
+    }
     
     status |= EHCI_PORT_POWER;
     ehci_write32(portsc_addr, status);
-    usb_delay(20);
+    usb_delay(100); 
     
     status = ehci_read32(portsc_addr);
     status |= EHCI_PORT_RESET;
@@ -435,6 +450,9 @@ static int ehci_reset_port(int port)
     status = ehci_read32(portsc_addr);
     if ((status & EHCI_PORT_LINE_STAT) == (1 << 10)) {
         printf("EHCI: Low-speed device on port, needs companion\n");
+        status |= EHCI_PORT_OWNER;
+        ehci_write32(portsc_addr, status);
+        return 0;
     }
     
     return 0;
@@ -448,6 +466,13 @@ static int ehci_control_transfer(unsigned char addr, unsigned char* setup, unsig
     ehci_qh_t* transfer_qh;
     int timeout;
     
+    int mps = 64;
+    int dev_idx = addr - 1;
+    if (addr > 0 && dev_idx >= 0 && dev_idx < 4) {
+        if (usb_devices[dev_idx].max_packet > 0)
+            mps = usb_devices[dev_idx].max_packet;
+    }
+
     qtd_setup = ehci_alloc_qtd();
     if (data_len > 0) {
         qtd_data = ehci_alloc_qtd();
@@ -467,7 +492,7 @@ static int ehci_control_transfer(unsigned char addr, unsigned char* setup, unsig
             memcpy(data_buffer, data, data_len);
         }
         qtd_data->buffer[0] = (unsigned int)data_buffer;
-        qtd_data->token = EHCI_QTD_ACTIVE | ((is_in ? EHCI_QTD_PID_IN : EHCI_QTD_PID_OUT) << 8) | (3 << 10) | (data_len << 16) | (1 << 31);  // Data toggle = 1
+        qtd_data->token = EHCI_QTD_ACTIVE | ((is_in ? EHCI_QTD_PID_IN : EHCI_QTD_PID_OUT) << 8) | (3 << 10) | (data_len << 16) | (1 << 31);
         qtd_data->next_qtd = (unsigned int)qtd_status;
         qtd_data->alt_qtd = 0x01;
     }
@@ -482,7 +507,7 @@ static int ehci_control_transfer(unsigned char addr, unsigned char* setup, unsig
     qtd_status->alt_qtd = 0x01;
     
     transfer_qh->horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
-    transfer_qh->endpoint_char = (64 << 16) | (1 << 14) | (2 << 12) | (0 << 8) | addr;
+    transfer_qh->endpoint_char = (mps << 16) | (1 << 14) | (2 << 12) | (0 << 8) | addr;
     transfer_qh->endpoint_caps = (1 << 30);
     transfer_qh->current_qtd = 0;
     transfer_qh->next_qtd = (unsigned int)qtd_setup;
@@ -539,7 +564,7 @@ static int ehci_interrupt_transfer(unsigned char addr, unsigned char ep, unsigne
     
     ehci_async_qh.horiz_link = ((unsigned int)transfer_qh) | 0x02;
     
-    timeout = 100;
+    timeout = 2000;
     while (timeout-- > 0) {
         if (!(qtd->token & EHCI_QTD_ACTIVE)) {
             ehci_async_qh.horiz_link = ((unsigned int)&ehci_async_qh) | 0x02;
@@ -562,6 +587,14 @@ static int ehci_interrupt_transfer(unsigned char addr, unsigned char ep, unsigne
     return -1;
 }
 
+static uhci_qh_t* uhci_alloc_qh(void)
+{
+    if (uhci_qh_next >= 8) uhci_qh_next = 0;
+    uhci_qh_t* qh = &qh_pool[uhci_qh_next++];
+    memset(qh, 0, sizeof(uhci_qh_t));
+    return qh;
+}
+
 static void uhci_reset(void)
 {
     outw(uhci_base + UHCI_CMD, UHCI_CMD_GRESET);
@@ -578,8 +611,12 @@ static void uhci_reset(void)
 
 static void uhci_init_framelist(void)
 {
+    uhci_skeleton_qh = uhci_alloc_qh();
+    uhci_skeleton_qh->head_link = 0x1;
+    uhci_skeleton_qh->element = 0x1;
+
     for (int i = 0; i < 1024; i++) {
-        frame_list[i] = 0x00000001;
+        frame_list[i] = ((unsigned int)uhci_skeleton_qh) | 0x02;
     }
     
     outl(uhci_base + UHCI_FRBASEADD, (unsigned int)frame_list);
@@ -589,14 +626,7 @@ static void uhci_init_framelist(void)
 
 static void uhci_start(void)
 {
-    outw(uhci_base + UHCI_CMD, UHCI_CMD_RS | UHCI_CMD_MAXP);
-    usb_delay(50);
-    
-    unsigned short status = inw(uhci_base + UHCI_STS);
-    
-    if (status & UHCI_STS_HCH) {
-        printf("USB: Controller halted\n");
-    }
+    outw(uhci_base + UHCI_CMD, UHCI_CMD_RS);
 }
 
 static int uhci_reset_port(int port)
@@ -611,7 +641,7 @@ static int uhci_reset_port(int port)
     }
     
     outw(portaddr, UHCI_PORT_RESET);
-    usb_delay(50);
+    usb_delay(100); 
     outw(portaddr, 0);
     usb_delay(10);
     
@@ -688,16 +718,12 @@ static int uhci_control_transfer(unsigned char addr, unsigned char* setup, unsig
         td_status->buffer = 0;
     }
     
-    for (int i = 0; i < 1024; i++) {
-        frame_list[i] = (unsigned int)td_setup; 
-    }
+    uhci_skeleton_qh->element = (unsigned int)td_setup;
     
     timeout = 10000;
     while (timeout-- > 0) {
         if (!(td_status->status & 0x00800000)) {
-            for (int i = 0; i < 1024; i++) {
-                frame_list[i] = 0x00000001;
-            }
+            uhci_skeleton_qh->element = 0x1;
             if (td_status->status & 0x007E0000) { 
                 return -1;
             }
@@ -709,10 +735,7 @@ static int uhci_control_transfer(unsigned char addr, unsigned char* setup, unsig
         usb_delay(1);
     }
     
-    for (int i = 0; i < 1024; i++) {
-        frame_list[i] = 0x00000001;
-    }
-    
+    uhci_skeleton_qh->element = 0x1;
     return -1; 
 }
 
@@ -731,16 +754,13 @@ static int uhci_interrupt_transfer(unsigned char addr, unsigned char ep, unsigne
     td->token = ((len - 1) << 21) | (toggle[dev_idx] << 19) | ((unsigned int)(ep & 0x0F) << 15) | ((unsigned int)addr << 8) | 0x69;
     td->buffer = (unsigned int)data_buffer;
     
-    for (int i = 0; i < 1024; i++) {
-        frame_list[i] = (unsigned int)td;
-    }
+    uhci_skeleton_qh->element = (unsigned int)td;
     
-    timeout = 100;
+    timeout = 2000;
     while (timeout-- > 0) {
         if (!(td->status & 0x00800000)) {
-            for (int i = 0; i < 1024; i++) {
-                frame_list[i] = 0x00000001;
-            }
+            uhci_skeleton_qh->element = 0x1;
+            
             if (td->status & 0x00760000) { // error not nak
                 return -1;
             }
@@ -751,24 +771,34 @@ static int uhci_interrupt_transfer(unsigned char addr, unsigned char ep, unsigne
             int actual = (td->status & 0x7FF) + 1;
             if (actual > 0x7FF) actual = 0; 
             if (actual > len) actual = len;
-            memcpy(data, data_buffer, actual);
-            return actual;
+            if (actual > 0 && actual <= len) {
+                memcpy(data, data_buffer, actual);
+            }
+            return actual > 0 ? actual : 0;
         }
         usb_delay(1);
     }
     
-    for (int i = 0; i < 1024; i++) {
-        frame_list[i] = 0x00000001;
-    }
+    uhci_skeleton_qh->element = 0x1;
     return -1;
 }
 
 static int usb_control_transfer(unsigned char addr, unsigned char* setup, unsigned char* data, int data_len, int is_in)
 {
-    if (uhci_found) {
+    int controller = -1;
+    if (addr == 0) {
+        controller = current_enumeration_controller;
+    } else {
+        int dev_idx = addr - 1;
+        if (dev_idx >= 0 && dev_idx < 4) {
+             controller = usb_devices[dev_idx].controller;
+        }
+    }
+
+    if (controller == 0 && uhci_found) {
         return uhci_control_transfer(addr, setup, data, data_len, is_in);
     }
-    else if (ehci_found) {
+    else if (controller == 1 && ehci_found) {
         return ehci_control_transfer(addr, setup, data, data_len, is_in);
     }
     return -1;
@@ -776,10 +806,16 @@ static int usb_control_transfer(unsigned char addr, unsigned char* setup, unsign
 
 static int usb_interrupt_transfer(unsigned char addr, unsigned char ep, unsigned char* data, int len)
 {
-    if (uhci_found) {
+    int dev_idx = addr - 1;
+    int controller = -1;
+    if (dev_idx >= 0 && dev_idx < 4) {
+        controller = usb_devices[dev_idx].controller;
+    }
+
+    if (controller == 0 && uhci_found) {
         return uhci_interrupt_transfer(addr, ep, data, len);
     }
-    else if (ehci_found) {
+    else if (controller == 1 && ehci_found) {
         return ehci_interrupt_transfer(addr, ep, data, len);
     }
     return -1;
@@ -807,6 +843,18 @@ static int usb_get_device_descriptor(unsigned char addr, unsigned char* buf)
         18, 0
     };
     return usb_control_transfer(addr, setup, buf, 18, 1);
+}
+
+static int usb_get_device_descriptor_header(unsigned char addr, unsigned char* buf)
+{
+    unsigned char setup[8] = {
+        0x80,
+        USB_REQ_GET_DESCRIPTOR,
+        0, USB_DESC_DEVICE,
+        0, 0,
+        8, 0
+    };
+    return usb_control_transfer(addr, setup, buf, 8, 1);
 }
 
 static int usb_get_config_descriptor(unsigned char addr, unsigned char* buf, int len)
@@ -931,14 +979,23 @@ static void usb_serial_init_chip(unsigned char addr)
     printf("USB: Serial chip initialized.\n");
 }
 
-static void enumerate_device(int port)
+static void enumerate_device(int port, int controller)
 {
     unsigned char desc[64];
     usb_device_t* dev;
     int dev_idx;
     
-    usb_delay(50);
+    usb_delay(100); 
     
+    current_enumeration_controller = controller;
+
+    if (usb_get_device_descriptor_header(0, desc) < 0) {
+        printf("USB: Failed to get device descriptor header.\n");
+        return;
+    }
+    
+    unsigned char max_packet_0 = desc[7];
+
     if (usb_set_address(next_address) < 0) {
         printf("USB: Failed to set device address.\n");
         return;
@@ -951,6 +1008,8 @@ static void enumerate_device(int port)
     dev = &usb_devices[dev_idx];
     dev->address = next_address;
     dev->present = 1;
+    dev->controller = controller;
+    dev->max_packet = max_packet_0; 
     next_address++;
     
     if (usb_get_device_descriptor(dev->address, desc) < 0) {
@@ -1228,8 +1287,6 @@ static void process_serial(void)
     }
 }
 
-// external
-
 void init_usb_legacy(void)
 {
     printf("USB: Init started.\n");
@@ -1238,21 +1295,12 @@ void init_usb_legacy(void)
     memset(kbd_report, 0, sizeof(kbd_report));
     memset(kbd_prev_report, 0, sizeof(kbd_prev_report));
     
-    if (find_uhci_controller()) {
-        uhci_found = 1;
-        uhci_reset();
-        uhci_init_framelist();
-        uhci_start();
-        usb_delay(100);
-        
-        for (int port = 0; port < 2; port++) {
-            if (uhci_reset_port(port)) {
-                enumerate_device(port);
-            }
-        }
-    }
-    else if (find_ehci_controller()) {
+    int uhci = find_uhci_controller();
+    int ehci = find_ehci_controller();
+    
+    if (ehci) {
         ehci_found = 1;
+        printf("USB: EHCI Initialization...\n");
         ehci_reset();
         ehci_init_async();
         ehci_start();
@@ -1260,11 +1308,27 @@ void init_usb_legacy(void)
         
         for (int port = 0; port < ehci_port_count; port++) {
             if (ehci_reset_port(port)) {
-                enumerate_device(port);
+                enumerate_device(port, 1);
             }
         }
     }
-    else {
+
+    if (uhci) {
+        uhci_found = 1;
+        printf("USB: UHCI Initialization...\n");
+        uhci_reset();
+        uhci_init_framelist();
+        uhci_start();
+        usb_delay(100);
+        
+        for (int port = 0; port < 2; port++) {
+            if (uhci_reset_port(port)) {
+                enumerate_device(port, 0);
+            }
+        }
+    }
+    
+    if (!uhci && !ehci) {
         printf("USB: No supported controller found.\n");
         return;
     }
@@ -1303,18 +1367,14 @@ static void uhci_serial_write(usb_device_t* dev, const unsigned char* data, unsi
     td->token = ((size - 1) << 21) | (0 << 19) | ((unsigned int)dev->endpoint_out << 15) | ((unsigned int)dev->address << 8) | 0xE1;
     td->buffer = (unsigned int)buf;
     
-    for (int i = 0; i < 1024; i++) {
-        frame_list[i] = (unsigned int)td;
-    }
+    uhci_skeleton_qh->element = (unsigned int)td;
     
     int timeout = 1000;
     while ((td->status & 0x00800000) && timeout-- > 0) {
         usb_delay(1);
     }
     
-    for (int i = 0; i < 1024; i++) {
-        frame_list[i] = 0x00000001;
-    }
+    uhci_skeleton_qh->element = 0x1;
 }
 
 static void ehci_serial_write(usb_device_t* dev, const unsigned char* data, unsigned int size)
@@ -1372,10 +1432,10 @@ void usb_serial_write_legacy(const unsigned char* data, unsigned int size)
     usb_device_t* dev = &usb_devices[usb_serial_idx];
     if (!dev->configured) return;
     
-    if (uhci_found) {
+    if (uhci_found && dev->controller == 0) {
         uhci_serial_write(dev, data, size);
     }
-    else if (ehci_found) {
+    else if (ehci_found && dev->controller == 1) {
         ehci_serial_write(dev, data, size);
     }
 }

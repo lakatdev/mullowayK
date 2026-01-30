@@ -380,10 +380,6 @@ void irq0_handler(void)
         update_video();
     }
     
-    if ((unsigned int)uptime % 10 == 0) {
-        usb_poll();
-    }
-
     if (timer_ticks > 0) {
         timer_ticks--;
     }
